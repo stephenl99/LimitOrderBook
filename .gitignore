@@ -1,0 +1,58 @@
+# --- Meson / Ninja ---
+build/
+builddir/
+.build/
+meson-logs/
+compile_commands.json
+
+# --- Compiled artifacts (if they leak outside build/) ---
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+a.out
+
+# --- Stray single-file IDE runs (use ./run.sh or ./test_core.sh) ---
+Core/Source/**/Core
+App/Source/App
+core_test
+
+# --- IDE (local machine state) ---
+.idea/
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.iml
+
+# Shareable editor config is tracked: .vscode/, .clangd
+
+# --- Cursor / local AI tooling ---
+.ai/
+.cursor/
+
+# --- Tool caches ---
+.cache/
+.clangd-index/
+
+# --- OS junk ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# --- Editor backups ---
+*~
+*.swp
+*.swo
+*.bak
+
+# --- Debug / crash dumps ---
+*.core
+*.dSYM/

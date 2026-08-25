@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run App",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "./run.sh",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Core Test",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "./test_core.sh",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
