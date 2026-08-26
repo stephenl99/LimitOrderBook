@@ -18,7 +18,7 @@ namespace Reader {
     }
 }
 
-unique_ptr<Book> Decoder::decode_file(const fs::path &input_path)
+std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
 {
     std::ifstream input_stream(input_path, std::ios::binary);
     if (!input_stream) {
@@ -50,7 +50,7 @@ unique_ptr<Book> Decoder::decode_file(const fs::path &input_path)
             continue;  // slice 1: only Add Order
         }
 
-        if (auto order = optional(parse_into_order(data)); order.has_value()) {
+        if (auto order = parse_into_order(data); order.has_value()) {
             book->insert(order.value());
         }
     }
@@ -58,7 +58,7 @@ unique_ptr<Book> Decoder::decode_file(const fs::path &input_path)
     return book;
 }
 
-optional<Order> Decoder::parse_into_order(const std::vector<uint8_t> &data)
+std::optional<Order> Decoder::parse_into_order(const std::vector<uint8_t>& data)
 {
     if (data.size() < 36 || data[0] != 'A') {
         return {};

@@ -4,35 +4,15 @@
 #pragma once
 
 #include <cstdint>
-#include <queue>
-#include <unordered_map>
-#include<vector>
+#include <map>
+
+#include "Level.h"
 #include "Order.h"
-using namespace std;
-
-struct BetterAsk {
-    bool operator()(const unique_ptr<Order>& a,
-                    const unique_ptr<Order>& b) const {
-        return a->price() < b->price();
-    }
-};
-
-struct BetterBid {
-    bool operator()(const unique_ptr<Order>& a,
-                    const unique_ptr<Order>& b) const {
-        return a->price() > b->price();
-    }
-};
 
 class Book {
-
 public:
-    priority_queue<unique_ptr<Order>, vector<unique_ptr<Order>>, BetterBid> bid;
-    priority_queue<unique_ptr<Order>, vector<unique_ptr<Order>>, BetterAsk> ask;
+    std::map<uint32_t, Level, std::greater<>> bid_levels;
+    std::map<uint32_t, Level, std::less<>> ask_levels;
 
-    void accept_order(Order &order);
-
-    void insert(Order &order);
+    void insert(Order& order);
 };
-
-

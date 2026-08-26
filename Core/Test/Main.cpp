@@ -6,13 +6,18 @@ int main(int argc, char* argv[])
 {
 	const char* path = argc > 1 ? argv[1] : "testdata/add_order_a.bin";
 	Decoder decoder;
-	unique_ptr<Book> book = decoder.decode_file(path);
+	std::unique_ptr<Book> book = decoder.decode_file(path);
 	if (book == nullptr) {
 		return 1;
 	}
 	std::cout << "core_test: decoded " << path << "\n"
-	          << " bid_levels=" << book->bid.size() << "\n"
-	          << " ask_levels=" << book->ask.size() << "\n";
-	std::cout << book->bid.top()->order_reference_number() << endl;
+	          << " bid_levels=" << book->bid_levels.size() << "\n"
+	          << " ask_levels=" << book->ask_levels.size() << "\n";
+	if (!book->bid_levels.empty()) {
+		const Level& level = book->bid_levels.begin()->second;
+		if (!level.orders.empty()) {
+			std::cout << level.orders.front().order_reference_number() << "\n";
+		}
+	}
 	return 0;
 }
