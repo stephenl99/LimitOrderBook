@@ -3,7 +3,7 @@
 #include <iostream>
 
 namespace Core {
-	void PrintHelloWorld()
+	void print_hello_world()
 	{
 		std::cout << "Hello World!\n";
 	}

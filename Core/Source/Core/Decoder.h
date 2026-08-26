@@ -14,9 +14,9 @@ namespace fs = std::filesystem;
 
 class Decoder {
     public:
-    Book *decodeFile(const fs::path &inputPath);
+    unique_ptr<Book> decode_file(const fs::path &input_path);
 
-    Order* parseIntoOrder(const std::vector<uint8_t>& data);
+    optional<Order> parse_into_order(const std::vector<uint8_t> &data);
 };
 
 

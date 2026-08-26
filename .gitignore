@@ -32,6 +32,9 @@ core_test
 
 # Shareable editor config is tracked: .vscode/, .clangd
 
+# --- Personal notes (local only) ---
+LOCAL_CHEATSHEET.txt
+
 # --- Cursor / local AI tooling ---
 .ai/
 .cursor/

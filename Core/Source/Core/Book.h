@@ -10,15 +10,29 @@
 #include "Order.h"
 using namespace std;
 
+struct BetterAsk {
+    bool operator()(const unique_ptr<Order>& a,
+                    const unique_ptr<Order>& b) const {
+        return a->price() < b->price();
+    }
+};
+
+struct BetterBid {
+    bool operator()(const unique_ptr<Order>& a,
+                    const unique_ptr<Order>& b) const {
+        return a->price() > b->price();
+    }
+};
+
 class Book {
 
 public:
-    priority_queue<Order> bid;
-    priority_queue<Order> ask;
+    priority_queue<unique_ptr<Order>, vector<unique_ptr<Order>>, BetterBid> bid;
+    priority_queue<unique_ptr<Order>, vector<unique_ptr<Order>>, BetterAsk> ask;
 
-    void AcceptOrder(const Order &order);
+    void accept_order(Order &order);
 
-    void insert(Order *order);
+    void insert(Order &order);
 };
 
 

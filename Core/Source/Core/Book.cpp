@@ -12,17 +12,15 @@
 using namespace std;
 
 
-void Book::AcceptOrder(const Order& order) {
-    if (order.side1() == Side::ASK) {
-        this->ask.emplace(order);
+void Book::accept_order(Order& order) {
+    auto ptr = make_unique<Order>(std::move(order));
+    if (ptr->side() == Side::ASK) {
+        this->ask.emplace(std::move(ptr));
     } else {
-        this->bid.emplace(order);
+        this->bid.emplace(std::move(ptr));
     }
-};
-void Book::insert(Order* order) {
-    if (order == nullptr) {
-        return;
-    }
-    AcceptOrder(*order);
-    delete order;
+}
+
+void Book::insert(Order& order) {
+    accept_order(order);
 }

@@ -1,5 +1,8 @@
 #include "Order.h"
 
+#include <utility>
+
+
 Order::Order(uint64_t timestamp_ns,
              uint64_t order_reference_number,
              char side,
@@ -15,6 +18,14 @@ Order::Order(uint64_t timestamp_ns,
     } else if (side == 'S') {
         side_ = Side::ASK;
     }
+}
+
+Order::Order(Order &&other) noexcept {
+    this->side_ = other.side();
+    this->order_reference_number_ = other.order_reference_number();
+    this->price_ = other.price_;
+    this->quantity_ = other.quantity_;
+    this->timestamp_ns_ = other.timestamp_ns_;
 }
 
 bool Order::operator<(const Order& other) const

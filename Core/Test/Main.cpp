@@ -4,15 +4,15 @@
 
 int main(int argc, char* argv[])
 {
-	const char* path = (argc > 1) ? argv[1] : "testdata/add_order_a.bin";
+	const char* path = argc > 1 ? argv[1] : "testdata/add_order_a.bin";
 	Decoder decoder;
-	Book* book = decoder.decodeFile(path);
+	unique_ptr<Book> book = decoder.decode_file(path);
 	if (book == nullptr) {
 		return 1;
 	}
-	std::cout << "core_test: decoded " << path
-	          << " bid_levels=" << book->bid.size()
+	std::cout << "core_test: decoded " << path << "\n"
+	          << " bid_levels=" << book->bid.size() << "\n"
 	          << " ask_levels=" << book->ask.size() << "\n";
-	delete book;
+	std::cout << book->bid.top()->order_reference_number() << endl;
 	return 0;
 }

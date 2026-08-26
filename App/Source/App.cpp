@@ -6,6 +6,5 @@ using namespace std;
 
 int main()
 {
-	Core::PrintHelloWorld();
-	cout <<  "D" << endl;
+	Core::print_hello_world();
 }
