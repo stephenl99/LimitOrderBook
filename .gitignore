@@ -18,7 +18,7 @@ compile_commands.json
 a.out
 
 # --- Stray single-file IDE runs (use ./run.sh or ./test_core.sh) ---
-Core/Source/**/Core
+Core/Source/Core/Core
 App/Source/App
 core_test
 
