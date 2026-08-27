@@ -6,17 +6,9 @@
 #include <fstream>
 #include <iostream>
 
-#include "Book.h"
-#include "Helpers.h"
+#include "Itch/AddOrderMessage.h"
+#include "Itch/DecodeMessage.h"
 #include "Order.h"
-
-namespace Reader {
-    static uint64_t read_timestamp_ns(const std::vector<uint8_t>& data, size_t offset)
-    {
-        return Helpers::convert<uint64_t, uint8_t>(
-            const_cast<uint8_t*>(data.data() + offset), 6);
-    }
-}
 
 std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
 {
@@ -46,32 +38,29 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
             break;
         }
 
-        if (data[0] != 'A') {
-            continue;  // slice 1: only Add Order
+        std::unique_ptr<itch::Message> message = itch::decode_message(data);
+        if (message == nullptr) {
+            continue;
         }
 
-        if (auto order = parse_into_order(data); order.has_value()) {
-            book->insert(order.value());
+        switch (message->message_type()) {
+        case 'A':
+        case 'F': {
+            const auto& add = static_cast<const itch::AddOrderMessage&>(*message);
+            Order order(add.timestamp_ns(), add.order_reference_number(), add.side(),
+                        add.price(), add.shares());
+            book->insert(order);
+            break;
+        }
+        case 'P':
+        case 'Q':
+            // Prints — not displayed-book updates.
+            break;
+        default:
+            // D/E/C/X/U — wire to Book when you implement those handlers.
+            break;
         }
     }
 
     return book;
-}
-
-std::optional<Order> Decoder::parse_into_order(const std::vector<uint8_t>& data)
-{
-    if (data.size() < 36 || data[0] != 'A') {
-        return {};
-    }
-
-    const uint64_t timestamp_ns = Reader::read_timestamp_ns(data, 5);
-    const uint64_t order_reference_number =
-        Helpers::convert<uint64_t, uint8_t>(const_cast<uint8_t*>(&data[11]), 8);
-    const char side = static_cast<char>(data[19]);
-    const uint32_t quantity =
-        Helpers::convert<uint32_t, uint8_t>(const_cast<uint8_t*>(&data[20]), 4);
-    const uint32_t price =
-        Helpers::convert<uint32_t, uint8_t>(const_cast<uint8_t*>(&data[32]), 4);
-
-    return {Order(timestamp_ns, order_reference_number, side, price, quantity)};
 }
