@@ -16,7 +16,8 @@ public:
     [[nodiscard]] uint64_t match_number() const { return match_number_; }
 
     static constexpr size_t kPayloadSize = 31;
-    static constexpr size_t kMatchNumber = 24;  // E/C-specific; shares use Offsets::kShares
+    static constexpr size_t kExecutedShares = 19;  // E/X qty starts here (not Offsets::kShares=20)
+    static constexpr size_t kMatchNumber = 23;
 
 protected:
     uint64_t order_reference_number_{};

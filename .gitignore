@@ -5,6 +5,10 @@ builddir/
 meson-logs/
 compile_commands.json
 
+# GoogleTest download (keep gtest.wrap + packagefiles/)
+subprojects/googletest-*/
+subprojects/packagecache/
+
 # --- Compiled artifacts (if they leak outside build/) ---
 *.o
 *.obj

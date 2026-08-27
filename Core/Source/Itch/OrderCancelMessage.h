@@ -15,6 +15,7 @@ public:
     [[nodiscard]] uint32_t cancelled_shares() const { return cancelled_shares_; }
 
     static constexpr size_t kPayloadSize = 23;
+    static constexpr size_t kCancelledShares = 19;  // same slot as E executed shares
 
 private:
     uint64_t order_reference_number_{};

@@ -81,8 +81,8 @@ Same as `A` through Price, then **Attribution** (MPID) at offset 36 (4 bytes). T
 | Tracking Number | 3 | 2 |
 | Timestamp | 5 | 6 |
 | Order Reference Number | 11 | 8 |
-| Executed Shares | 20 | 4 |
-| Match Number | 24 | 8 |
+| Executed Shares | 19 | 4 |
+| Match Number | 23 | 8 |
 
 No price. Look up order by ref; reduce quantity; remove if qty → 0.
 
@@ -95,10 +95,10 @@ No price. Look up order by ref; reduce quantity; remove if qty → 0.
 | Tracking Number | 3 | 2 |
 | Timestamp | 5 | 6 |
 | Order Reference Number | 11 | 8 |
-| Executed Shares | 20 | 4 |
-| Match Number | 24 | 8 |
-| Printable | 32 | 1 |
-| Execution Price | 33 | 4 |
+| Executed Shares | 19 | 4 |
+| Match Number | 23 | 8 |
+| Printable | 31 | 1 |
+| Execution Price | 32 | 4 |
 
 Still a book update via order ref (reduce qty). Price here is execution detail, not “find the level.”
 
@@ -111,7 +111,7 @@ Still a book update via order ref (reduce qty). Price here is execution detail, 
 | Tracking Number | 3 | 2 |
 | Timestamp | 5 | 6 |
 | Order Reference Number | 11 | 8 |
-| Cancelled Shares | 20 | 4 |
+| Cancelled Shares | 19 | 4 |
 
 Partial cancel: reduce qty by cancelled shares; remove if qty → 0.
 

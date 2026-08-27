@@ -15,8 +15,8 @@ public:
     [[nodiscard]] uint32_t execution_price() const { return execution_price_; }
 
     static constexpr size_t kPayloadSize = 36;
-    static constexpr size_t kPrintable = 32;
-    static constexpr size_t kExecutionPrice = 33;
+    static constexpr size_t kPrintable = 31;
+    static constexpr size_t kExecutionPrice = 32;
 
 private:
     char printable_{};

@@ -17,9 +17,10 @@ core_cpp = run_command(
   check: true,
 ).stdout().strip().split('\n')
 
+# App binaries (exclude dump tool — separate target).
 app_cpp = run_command(
   py, '-c',
-  'from pathlib import Path; print("\\n".join(str(p) for p in sorted(Path("App/Source").rglob("*.cpp"))))',
+  'from pathlib import Path; print("\\n".join(str(p) for p in sorted(Path("App/Source").rglob("*.cpp")) if p.name != "ItchDump.cpp"))',
   check: true,
 ).stdout().strip().split('\n')
 
@@ -43,10 +44,30 @@ executable(
   install: false,
 )
 
-# Test harness — main here, not under Core/Source (not part of libcore).
+# Verbose BinaryFILE / ITCH message dump (not GoogleTest).
+executable(
+  'itch_dump',
+  'App/Source/ItchDump.cpp',
+  dependencies: core_dep,
+  install: false,
+)
+
+# Manual smoke harness (still useful for quick book peek).
 executable(
   'core_test',
   'Core/Test/Main.cpp',
   dependencies: core_dep,
   install: false,
 )
+
+# GoogleTest
+gtest_dep = dependency('gtest', main: true, fallback: ['gtest', 'gtest_main_dep'])
+
+unit_tests = executable(
+  'unit_tests',
+  'Core/Test/GTestMain.cpp',
+  dependencies: [core_dep, gtest_dep],
+  install: false,
+)
+
+test('unit_tests', unit_tests, workdir: meson.project_source_root())
