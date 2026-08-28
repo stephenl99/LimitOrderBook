@@ -92,8 +92,8 @@ TEST(Decoder, SessionMixAppliesAdds)
     Decoder decoder;
     auto book = decoder.decode_file(fixture("session_mix.bin"));
     ASSERT_NE(book, nullptr);
-    EXPECT_EQ(book->bid_levels.size(), 3u);  // 150.00, 149.99, 149.95 (E/D not applied yet)
-    EXPECT_EQ(book->ask_levels.size(), 2u);  // 150.05, 150.10
+    EXPECT_EQ(book->bid_levels.size(), 2u);  // 150.00 (70 left after E), 149.95 (10003 deleted)
+    EXPECT_EQ(book->ask_levels.size(), 2u);  // 150.05, 150.10 (X/U not applied yet)
 }
 
 TEST(Decoder, TinyAddFixture)

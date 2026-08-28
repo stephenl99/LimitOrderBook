@@ -8,9 +8,9 @@
 
 #include "Itch/AddOrderMessage.h"
 #include "Itch/DecodeMessage.h"
+#include "Itch/OrderDeleteMessage.h"
+#include "Itch/OrderExecutedMessage.h"
 #include "Order.h"
-#include "OrderDeleteMessage.h"
-#include "OrderExecutedMessage.h"
 
 std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
 {
@@ -68,13 +68,10 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
             book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
             break;
         }
-
-
-
-
-
         default:
-            // D/E/C/X/U — wire to Book when you implement those handlers.
+            // C/X/U — wire to Book when you implement those handlers.
+            break;
+        }
     }
 
     return book;

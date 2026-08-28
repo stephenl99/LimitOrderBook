@@ -6,37 +6,91 @@
 
 #include <iostream>
 
+namespace {
+
+void erase_empty_level(std::map<uint32_t, Level, std::greater<>>& bid_levels,
+                       std::map<uint32_t, Level, std::less<>>& ask_levels,
+                       const OrderIterator& handle)
+{
+    if (!handle.level.orders.empty()) {
+        return;
+    }
+    if (handle.side == Side::ASK) {
+        ask_levels.erase(handle.price);
+    } else {
+        bid_levels.erase(handle.price);
+    }
+}
+
+}  // namespace
+
 void Book::insert(Order& order)
 {
     const uint32_t price = order.price();
-    if (order.side() == Side::ASK) {
-        ask_levels[price].orders.push_back(std::move(order));
-        order_mapping.emplace(order.order_reference_number(), make_unique<OrderIterator>(order, ask_levels[price], prev(ask_levels[price].orders.end())));
+    const uint64_t ref = order.order_reference_number();
+    const Side side = order.side();
+
+    if (side == Side::ASK) {
+        auto& level = ask_levels[price];
+        auto it = level.orders.insert(level.orders.end(), std::move(order));
+        order_mapping.emplace(ref,
+                              std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
     } else {
-        bid_levels[price].orders.push_back(std::move(order));
-        order_mapping.emplace(order.order_reference_number(), make_unique<OrderIterator>(order, bid_levels[price], prev(bid_levels[price].orders.end())));
+        auto& level = bid_levels[price];
+        auto it = level.orders.insert(level.orders.end(), std::move(order));
+        order_mapping.emplace(ref,
+                              std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
     }
-
-}
-void Book::delete_order(uint64_t order_reference_number) {
-    if (!order_mapping.contains(order_reference_number)) {
-        std::cout << "Attempted to delete order " << order_reference_number << ", but it was no longer in the book" << std::endl;
-        return;
-    }
-    auto it = order_mapping.at(order_reference_number)->it;
-    order_mapping.at(order_reference_number)->level.orders.erase(it);
 }
 
-void Book::execute_order(uint64_t order_reference_number, uint32_t executed_shares) {
+void Book::remove_order(uint64_t order_reference_number)
+{
+    auto map_it = order_mapping.find(order_reference_number);
+    if (map_it == order_mapping.end()) {
+        return;
+    }
+
+    OrderIterator& handle = *map_it->second;
+    handle.level.orders.erase(handle.it);
+    erase_empty_level(bid_levels, ask_levels, handle);
+    order_mapping.erase(map_it);
+}
+
+void Book::delete_order(uint64_t order_reference_number)
+{
     if (!order_mapping.contains(order_reference_number)) {
-        std::cout << "Attempted to execute order " << order_reference_number << ", but it was no longer in the book" << std::endl;
+        std::cout << "Attempted to delete order " << order_reference_number
+                  << ", but it was no longer in the book" << std::endl;
         return;
     }
-    auto it = order_mapping.at(order_reference_number)->it;
-    uint32_t quantity_remaining = it->quantity();
-    if (quantity_remaining >= executed_shares) {
-        it->set_quantity(quantity_remaining - executed_shares);
+    remove_order(order_reference_number);
+}
+
+void Book::execute_order(uint64_t order_reference_number, uint32_t executed_shares)
+{
+    auto map_it = order_mapping.find(order_reference_number);
+    if (map_it == order_mapping.end()) {
+        std::cout << "Attempted to execute order " << order_reference_number
+                  << ", but it was no longer in the book" << std::endl;
         return;
     }
-    order_mapping.at(order_reference_number)->level.orders.erase(it);
+
+    auto& handle = *map_it->second;
+    const uint32_t quantity_remaining = handle.it->quantity();
+
+    if (executed_shares > quantity_remaining) {
+        std::cout << "Attempted to execute " << executed_shares << " shares of order "
+                  << order_reference_number << ", but only " << quantity_remaining
+                  << " remained" << std::endl;
+        remove_order(order_reference_number);
+        return;
+    }
+
+    const uint32_t new_quantity = quantity_remaining - executed_shares;
+    if (new_quantity == 0) {
+        remove_order(order_reference_number);
+        return;
+    }
+
+    handle.it->set_quantity(new_quantity);
 }

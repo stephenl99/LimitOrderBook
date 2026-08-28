@@ -23,4 +23,4 @@ python3 testdata/gen_session_mix.py
 | 9 | P | Trade print (ignore for displayed book) |
 | 10 | A | Add bid ref=10006, 25 @ 149.9500 |
 
-With **current** book wiring (only A/F insert), after replay you should see **4** resting adds applied (10001–10004); E/X/D/U/P are decoded by `itch_dump` but not yet applied to the book.
+With **current** book wiring (A/F insert, E execute, D delete), after replay you should see **2** bid levels (150.00 with 70 shares on 10001, 149.95 on 10006) and **2** ask levels (150.05 on 10002, 150.10 on 10004). X/U/P are decoded by `itch_dump` but not yet applied to the book.
