@@ -30,6 +30,16 @@ public:
 
     void execute_order(uint64_t order_reference_number, uint32_t executed_shares);
 
+    void cancel_order(uint64_t order_reference_number, uint32_t cancelled_shares);
+
+    void replace_order(uint64_t old_order_reference_number,
+                       uint64_t new_order_reference_number,
+                       uint32_t new_price,
+                       uint32_t new_shares);
+
 private:
     void remove_order(uint64_t order_reference_number);
+    void reduce_order_quantity(uint64_t order_reference_number,
+                               uint32_t shares,
+                               const char* action);
 };

@@ -8,8 +8,11 @@
 
 #include "Itch/AddOrderMessage.h"
 #include "Itch/DecodeMessage.h"
+#include "Itch/OrderCancelMessage.h"
 #include "Itch/OrderDeleteMessage.h"
 #include "Itch/OrderExecutedMessage.h"
+#include "Itch/OrderExecutedWithPriceMessage.h"
+#include "Itch/OrderReplaceMessage.h"
 #include "Order.h"
 
 std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
@@ -68,8 +71,25 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
             book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
             break;
         }
+        case 'C': {
+            const auto& to_execute = dynamic_cast<const itch::OrderExecutedWithPriceMessage&>(*message);
+            book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
+            break;
+        }
+        case 'X': {
+            const auto& to_cancel = dynamic_cast<const itch::OrderCancelMessage&>(*message);
+            book->cancel_order(to_cancel.order_reference_number(), to_cancel.cancelled_shares());
+            break;
+        }
+        case 'U': {
+            const auto& to_replace = dynamic_cast<const itch::OrderReplaceMessage&>(*message);
+            book->replace_order(to_replace.original_order_reference(),
+                                to_replace.new_order_reference(),
+                                to_replace.price(),
+                                to_replace.shares());
+            break;
+        }
         default:
-            // C/X/U — wire to Book when you implement those handlers.
             break;
         }
     }

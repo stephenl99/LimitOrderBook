@@ -66,11 +66,13 @@ void Book::delete_order(uint64_t order_reference_number)
     remove_order(order_reference_number);
 }
 
-void Book::execute_order(uint64_t order_reference_number, uint32_t executed_shares)
+void Book::reduce_order_quantity(uint64_t order_reference_number,
+                                 uint32_t shares,
+                                 const char* action)
 {
     auto map_it = order_mapping.find(order_reference_number);
     if (map_it == order_mapping.end()) {
-        std::cout << "Attempted to execute order " << order_reference_number
+        std::cout << "Attempted to " << action << " order " << order_reference_number
                   << ", but it was no longer in the book" << std::endl;
         return;
     }
@@ -78,19 +80,51 @@ void Book::execute_order(uint64_t order_reference_number, uint32_t executed_shar
     auto& handle = *map_it->second;
     const uint32_t quantity_remaining = handle.it->quantity();
 
-    if (executed_shares > quantity_remaining) {
-        std::cout << "Attempted to execute " << executed_shares << " shares of order "
+    if (shares > quantity_remaining) {
+        std::cout << "Attempted to " << action << " " << shares << " shares of order "
                   << order_reference_number << ", but only " << quantity_remaining
                   << " remained" << std::endl;
         remove_order(order_reference_number);
         return;
     }
 
-    const uint32_t new_quantity = quantity_remaining - executed_shares;
+    const uint32_t new_quantity = quantity_remaining - shares;
     if (new_quantity == 0) {
         remove_order(order_reference_number);
         return;
     }
 
     handle.it->set_quantity(new_quantity);
+}
+
+void Book::execute_order(uint64_t order_reference_number, uint32_t executed_shares)
+{
+    reduce_order_quantity(order_reference_number, executed_shares, "execute");
+}
+
+void Book::cancel_order(uint64_t order_reference_number, uint32_t cancelled_shares)
+{
+    reduce_order_quantity(order_reference_number, cancelled_shares, "cancel");
+}
+
+void Book::replace_order(uint64_t old_order_reference_number,
+                         uint64_t new_order_reference_number,
+                         uint32_t new_price,
+                         uint32_t new_shares)
+{
+    auto map_it = order_mapping.find(old_order_reference_number);
+    if (map_it == order_mapping.end()) {
+        std::cout << "Attempted to replace order " << old_order_reference_number
+                  << ", but it was no longer in the book" << std::endl;
+        return;
+    }
+
+    const Order& old_order = *map_it->second->it;
+    const uint64_t timestamp_ns = old_order.timestamp_ns();
+    const char side = (old_order.side() == Side::BID) ? 'B' : 'S';
+
+    remove_order(old_order_reference_number);
+
+    Order replacement(timestamp_ns, new_order_reference_number, side, new_price, new_shares);
+    insert(replacement);
 }
