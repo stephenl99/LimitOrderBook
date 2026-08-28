@@ -9,6 +9,8 @@
 #include "Itch/AddOrderMessage.h"
 #include "Itch/DecodeMessage.h"
 #include "Order.h"
+#include "OrderDeleteMessage.h"
+#include "OrderExecutedMessage.h"
 
 std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
 {
@@ -46,7 +48,7 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
         switch (message->message_type()) {
         case 'A':
         case 'F': {
-            const auto& add = static_cast<const itch::AddOrderMessage&>(*message);
+            const auto& add = dynamic_cast<const itch::AddOrderMessage&>(*message);
             Order order(add.timestamp_ns(), add.order_reference_number(), add.side(),
                         add.price(), add.shares());
             book->insert(order);
@@ -56,10 +58,23 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
         case 'Q':
             // Prints — not displayed-book updates.
             break;
-        default:
-            // D/E/C/X/U — wire to Book when you implement those handlers.
+        case 'D': {
+            const auto& to_delete = dynamic_cast<const itch::OrderDeleteMessage&>(*message);
+            book->delete_order(to_delete.order_reference_number());
             break;
         }
+        case 'E': {
+            const auto& to_execute = dynamic_cast<const itch::OrderExecutedMessage&>(*message);
+            book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
+            break;
+        }
+
+
+
+
+
+        default:
+            // D/E/C/X/U — wire to Book when you implement those handlers.
     }
 
     return book;

@@ -28,6 +28,14 @@ Order::Order(Order &&other) noexcept {
     this->timestamp_ns_ = other.timestamp_ns_;
 }
 
+Order::Order(const Order &other) {
+    this->side_ = other.side();
+    this->order_reference_number_ = other.order_reference_number();
+    this->price_ = other.price_;
+    this->quantity_ = other.quantity_;
+    this->timestamp_ns_ = other.timestamp_ns_;
+}
+
 bool Order::operator<(const Order& other) const
 {
     if (side_ == Side::BID) {

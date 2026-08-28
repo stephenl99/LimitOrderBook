@@ -9,6 +9,26 @@ enum class Side {
 
 class Order {
 public:
+    void set_timestamp_ns(uint64_t timestamp_ns) {
+        timestamp_ns_ = timestamp_ns;
+    }
+
+    void set_order_reference_number(uint64_t order_reference_number) {
+        order_reference_number_ = order_reference_number;
+    }
+
+    void set_side(Side side) {
+        side_ = side;
+    }
+
+    void set_price(uint32_t price) {
+        price_ = price;
+    }
+
+    void set_quantity(uint32_t quantity) {
+        quantity_ = quantity;
+    }
+
     Order(uint64_t timestamp_ns,
           uint64_t order_reference_number,
           char side,
@@ -16,6 +36,8 @@ public:
           uint32_t quantity);
 
     Order(Order&& other) noexcept;
+
+    Order(const Order& other);
 
     [[nodiscard]] uint64_t timestamp_ns() const { return timestamp_ns_; }
     [[nodiscard]] uint64_t order_reference_number() const { return order_reference_number_; }

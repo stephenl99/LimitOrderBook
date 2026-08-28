@@ -38,6 +38,7 @@ core_test
 
 # --- Personal notes (local only) ---
 LOCAL_CHEATSHEET.txt
+LOCAL_ROADMAP.txt
 
 # --- Cursor / local AI tooling ---
 .ai/
