@@ -41,3 +41,13 @@ std::string StockDirectory::translate(uint16_t locate) const
     }
     return *symbol;
 }
+
+std::vector<uint16_t> StockDirectory::locates() const
+{
+    std::vector<uint16_t> locates;
+    locates.reserve(directory_.size());
+    for (const auto& entry : directory_) {
+        locates.push_back(entry.first);
+    }
+    return locates;
+}

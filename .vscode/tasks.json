@@ -23,6 +23,20 @@
       },
       "group": "build",
       "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "debug",
+      "type": "shell",
+      "command": "./debug.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
     }
   ]
 }

@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "debug",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/core_test",
+      "args": ["testdata/add_order_a.bin"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "meson: build core_test"
+    },
+    {
       "name": "LLDB: core_test",
       "type": "lldb",
       "request": "launch",

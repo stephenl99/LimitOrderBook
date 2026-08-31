@@ -43,7 +43,7 @@ Order::Order(const Order& other) {
 bool Order::operator<(const Order& other) const
 {
     if (side_ == Side::BID) {
-        return price_ > other.price_;  // max-heap → best bid on top
+        return price_ > other.price_;
     }
-    return price_ < other.price_;      // min-heap → best ask on top
+    return price_ < other.price_;
 }
