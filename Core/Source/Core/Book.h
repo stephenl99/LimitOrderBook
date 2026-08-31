@@ -9,9 +9,11 @@
 #include <unordered_map>
 
 #include "SecurityBook.h"
+#include "StockDirectory.h"
 
 class Book {
 public:
+    StockDirectory directory;
     SecurityBook& book_for(uint16_t stock_locate);
     [[nodiscard]] std::optional<SecurityBook *> find(uint16_t stock_locate) const;
 

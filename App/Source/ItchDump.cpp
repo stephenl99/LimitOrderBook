@@ -7,6 +7,7 @@
 #include "Itch/OrderExecutedMessage.h"
 #include "Itch/OrderExecutedWithPriceMessage.h"
 #include "Itch/OrderReplaceMessage.h"
+#include "Itch/StockDirectoryMessage.h"
 #include "Itch/TradeMessage.h"
 
 #include <cstdint>
@@ -91,6 +92,13 @@ void print_message(const itch::Message& m)
                   << " new=" << u.new_order_reference()
                   << " shares=" << u.shares()
                   << " price=" << u.price() << "\n";
+        break;
+    }
+    case 'R': {
+        const auto& r = static_cast<const itch::StockDirectoryMessage&>(m);
+        std::cout << "    StockDirectory stock=" << stock_view(r.stock())
+                  << " market_category=" << r.market_category()
+                  << "  (directory only)\n";
         break;
     }
     case 'P': {

@@ -1,11 +1,13 @@
 #include "Core/Book.h"
 #include "Core/Decoder.h"
+#include "Core/StockDirectory.h"
 #include "Itch/AddOrderMessage.h"
 #include "Itch/DecodeMessage.h"
 #include "Itch/OrderCancelMessage.h"
 #include "Itch/OrderDeleteMessage.h"
 #include "Itch/OrderExecutedWithPriceMessage.h"
 #include "Itch/OrderReplaceMessage.h"
+#include "Itch/StockDirectoryMessage.h"
 
 #include <gtest/gtest.h>
 
@@ -99,6 +101,26 @@ TEST(DecodeMessage, AddOrderFixture)
     EXPECT_EQ(add.price(), 1500000u);
     EXPECT_EQ(add.timestamp_ns(), 1000000000u);
     EXPECT_EQ(msg->stock_locate(), 1u);
+}
+
+TEST(DecodeMessage, StockDirectoryPayload)
+{
+    std::vector<uint8_t> data(39, ' ');
+    data[0] = 'R';
+    data[1] = 0;
+    data[2] = 42;  // locate 42
+    const char symbol[] = "MSFT    ";
+    for (int i = 0; i < 8; ++i) {
+        data[11 + i] = static_cast<uint8_t>(symbol[i]);
+    }
+    data[19] = 'Q';
+
+    auto msg = itch::decode_message(data);
+    ASSERT_NE(msg, nullptr);
+    const auto& directory = static_cast<const itch::StockDirectoryMessage&>(*msg);
+    EXPECT_EQ(directory.stock_locate(), 42u);
+    EXPECT_EQ(std::string(directory.stock(), 8), "MSFT    ");
+    EXPECT_EQ(directory.market_category(), 'Q');
 }
 
 TEST(DecodeMessage, DeletePayload)
@@ -243,6 +265,17 @@ TEST(Book, ReplaceMovesPriceAndReference)
     EXPECT_EQ(level_price_for(book, 6005), 1'500'800u);
     EXPECT_FALSE(book.ask_levels.contains(1'501'000u));
     EXPECT_TRUE(book.ask_levels.contains(1'500'800u));
+}
+
+TEST(StockDirectory, AddAndLookup)
+{
+    StockDirectory directory;
+    directory.add(42, "MSFT    ");
+    const auto symbol = directory.lookup(42);
+    ASSERT_TRUE(symbol.has_value());
+    EXPECT_EQ(*symbol, "MSFT");
+    EXPECT_EQ(directory.translate(42), "MSFT");
+    EXPECT_TRUE(directory.lookup(99).has_value() == false);
 }
 
 TEST(Decoder, SessionMixRebuildsBook)

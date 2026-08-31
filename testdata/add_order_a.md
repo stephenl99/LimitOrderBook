@@ -5,7 +5,38 @@ Integers are **big-endian**. Prices are `uint32` with **4 implied decimals** (no
 Timestamps are 6-byte ns since midnight.
 
 Displayed book updates: **A, F, E, C, X, D, U**.  
-**P / Q** are prints — do **not** change the displayed book.
+**P / Q** are prints — do **not** change the displayed book.  
+**R** is Stock Directory — fills **locate → symbol**; does **not** change the displayed book.
+
+---
+
+## Stock Directory — `R` (39 bytes)
+
+Sent at the start of the session (and when symbols change). Builds your **`StockDirectory`** map so a numeric **locate** in every message header can be turned into a symbol.
+
+| Field | Offset | Len | Notes |
+|---|---|---|---|
+| Message Type | 0 | 1 | `R` |
+| Stock Locate | 1 | 2 | Key for the day — same field as on A/E/X/… |
+| Tracking Number | 3 | 2 | |
+| Timestamp | 5 | 6 | ns since midnight |
+| Stock | 11 | 8 | `"AAPL    "` space-padded |
+| Market Category | 19 | 1 | e.g. `Q` Global Select, `G` Global, `N` NYSE |
+| … | 20 | 19 | Financial status, round lot, ETP flags, etc. |
+
+**Decoder wiring:** `case 'R'` → `book.directory.add(stock_locate, stock)` — no `SecurityBook::insert`.
+
+**Why it matters:** `E` / `X` / `D` / `U` carry **locate + order ref**, not the 8-char symbol. Without `R`, you can still route by locate (`book_for(locate)`), but you cannot print `"AAPL"` or filter a watchlist by ticker until directory rows arrive.
+
+Example minimal payload (locate **1**, symbol **AAPL**):
+
+```
+0000: 52 00 01 00 00 00 00 00 00 00 00 41 41 50 4c 20
+0010: 20 20 20 20 51 20 00 00 00 64 4e 20 41 20 20 20
+0020: 20 20 20 20 00 00 00 00 00 20
+```
+
+(`52` = `'R'`, stock at offset 11 = `AAPL    `, market category at 19 = `Q`)
 
 ---
 
@@ -162,6 +193,22 @@ Ignore for maintaining bid/ask levels (print / tape).
 ### Cross Trade — `Q` — **not a displayed-book update**
 
 Ignore for the displayed book (same idea as `P`).
+
+### Stock Directory — `R` (39) — **not a displayed-book update**
+
+| Field | Off | Len |
+|---|---|---|
+| Message Type = `R` | 0 | 1 |
+| Stock Locate | 1 | 2 |
+| Tracking Number | 3 | 2 |
+| Timestamp | 5 | 6 |
+| Stock | 11 | 8 |
+| Market Category | 19 | 1 |
+| Financial Status Indicator | 20 | 1 |
+| Round Lot Size | 21 | 4 |
+| … | 25 | 14 |
+
+Populate `StockDirectory`: `directory[locate] = symbol`. Book updates still keyed by **locate** from the message header.
 
 ---
 

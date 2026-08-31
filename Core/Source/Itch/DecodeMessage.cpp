@@ -10,6 +10,7 @@
 #include "Itch/OrderExecutedMessage.h"
 #include "Itch/OrderExecutedWithPriceMessage.h"
 #include "Itch/OrderReplaceMessage.h"
+#include "Itch/StockDirectoryMessage.h"
 #include "Itch/TradeMessage.h"
 
 namespace itch {
@@ -42,6 +43,9 @@ std::unique_ptr<Message> decode_message(const std::vector<uint8_t>& data)
         break;
     case 'U':
         message = std::make_unique<OrderReplaceMessage>();
+        break;
+    case 'R':
+        message = std::make_unique<StockDirectoryMessage>();
         break;
     case 'P':
         message = std::make_unique<TradeMessage>();

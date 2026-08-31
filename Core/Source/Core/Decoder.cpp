@@ -13,6 +13,7 @@
 #include "Itch/OrderExecutedMessage.h"
 #include "Itch/OrderExecutedWithPriceMessage.h"
 #include "Itch/OrderReplaceMessage.h"
+#include "Itch/StockDirectoryMessage.h"
 #include "Order.h"
 
 std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
@@ -52,6 +53,11 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
         SecurityBook& security_book = book->book_for(stock_locate);
 
         switch (message->message_type()) {
+        case 'R': {
+            const auto& directory_msg = dynamic_cast<const itch::StockDirectoryMessage&>(*message);
+            book->directory.add(stock_locate, directory_msg.stock());
+            break;
+        }
         case 'A':
         case 'F': {
             const auto& add = dynamic_cast<const itch::AddOrderMessage&>(*message);
