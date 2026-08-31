@@ -1,45 +1,20 @@
 //
-// Created by Stephen Linder on 8/22/26.
+// Created by Stephen Linder on 8/31/26.
 //
 #pragma once
 
 #include <cstdint>
-#include <list>
-#include <map>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
-#include "Level.h"
-#include "Order.h"
-
-struct OrderIterator {
-    Level& level;
-    std::list<Order>::iterator it;
-    uint32_t price;
-    Side side;
-};
+#include "SecurityBook.h"
 
 class Book {
 public:
-    std::map<uint32_t, Level, std::greater<>> bid_levels;
-    std::map<uint32_t, Level, std::less<>> ask_levels;
-    std::unordered_map<uint64_t, std::unique_ptr<OrderIterator>> order_mapping;
-    void insert(Order& order);
-
-    void delete_order(uint64_t order_reference_number);
-
-    void execute_order(uint64_t order_reference_number, uint32_t executed_shares);
-
-    void cancel_order(uint64_t order_reference_number, uint32_t cancelled_shares);
-
-    void replace_order(uint64_t old_order_reference_number,
-                       uint64_t new_order_reference_number,
-                       uint32_t new_price,
-                       uint32_t new_shares);
+    SecurityBook& book_for(uint16_t stock_locate);
+    [[nodiscard]] std::optional<SecurityBook *> find(uint16_t stock_locate) const;
 
 private:
-    void remove_order(uint64_t order_reference_number);
-    void reduce_order_quantity(uint64_t order_reference_number,
-                               uint32_t shares,
-                               const char* action);
+    std::unordered_map<uint16_t, std::unique_ptr<SecurityBook>> books_;
 };

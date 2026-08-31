@@ -48,13 +48,20 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
             continue;
         }
 
+        const uint16_t stock_locate = message->stock_locate();
+        SecurityBook& security_book = book->book_for(stock_locate);
+
         switch (message->message_type()) {
         case 'A':
         case 'F': {
             const auto& add = dynamic_cast<const itch::AddOrderMessage&>(*message);
-            Order order(add.timestamp_ns(), add.order_reference_number(), add.side(),
-                        add.price(), add.shares());
-            book->insert(order);
+            Order order(add.timestamp_ns(),
+                        stock_locate,
+                        add.order_reference_number(),
+                        add.side(),
+                        add.price(),
+                        add.shares());
+            security_book.insert(order);
             break;
         }
         case 'P':
@@ -63,30 +70,30 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
             break;
         case 'D': {
             const auto& to_delete = dynamic_cast<const itch::OrderDeleteMessage&>(*message);
-            book->delete_order(to_delete.order_reference_number());
+            security_book.delete_order(to_delete.order_reference_number());
             break;
         }
         case 'E': {
             const auto& to_execute = dynamic_cast<const itch::OrderExecutedMessage&>(*message);
-            book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
+            security_book.execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
             break;
         }
         case 'C': {
             const auto& to_execute = dynamic_cast<const itch::OrderExecutedWithPriceMessage&>(*message);
-            book->execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
+            security_book.execute_order(to_execute.order_reference_number(), to_execute.executed_shares());
             break;
         }
         case 'X': {
             const auto& to_cancel = dynamic_cast<const itch::OrderCancelMessage&>(*message);
-            book->cancel_order(to_cancel.order_reference_number(), to_cancel.cancelled_shares());
+            security_book.cancel_order(to_cancel.order_reference_number(), to_cancel.cancelled_shares());
             break;
         }
         case 'U': {
             const auto& to_replace = dynamic_cast<const itch::OrderReplaceMessage&>(*message);
-            book->replace_order(to_replace.original_order_reference(),
-                                to_replace.new_order_reference(),
-                                to_replace.price(),
-                                to_replace.shares());
+            security_book.replace_order(to_replace.original_order_reference(),
+                               to_replace.new_order_reference(),
+                               to_replace.price(),
+                               to_replace.shares());
             break;
         }
         default:

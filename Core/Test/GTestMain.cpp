@@ -38,7 +38,7 @@ std::vector<uint8_t> read_file(const std::filesystem::path& path)
     return std::vector<uint8_t>(std::istreambuf_iterator<char>(in), {});
 }
 
-std::optional<uint32_t> resting_quantity(const Book& book, uint64_t order_reference_number)
+std::optional<uint32_t> resting_quantity(const SecurityBook& book, uint64_t order_reference_number)
 {
     const auto it = book.order_mapping.find(order_reference_number);
     if (it == book.order_mapping.end()) {
@@ -47,7 +47,7 @@ std::optional<uint32_t> resting_quantity(const Book& book, uint64_t order_refere
     return it->second->it->quantity();
 }
 
-std::optional<uint32_t> level_price_for(const Book& book, uint64_t order_reference_number)
+std::optional<uint32_t> level_price_for(const SecurityBook& book, uint64_t order_reference_number)
 {
     const auto it = book.order_mapping.find(order_reference_number);
     if (it == book.order_mapping.end()) {
@@ -72,6 +72,11 @@ void write_be32(std::vector<uint8_t>& data, size_t offset, uint32_t value)
     }
 }
 
+std::optional<SecurityBook*> find_security_book(const Book& books, uint16_t stock_locate = 1)
+{
+    return books.find(stock_locate);
+}
+
 }  // namespace
 
 TEST(DecodeMessage, AddOrderFixture)
@@ -93,6 +98,7 @@ TEST(DecodeMessage, AddOrderFixture)
     EXPECT_EQ(add.shares(), 100u);
     EXPECT_EQ(add.price(), 1500000u);
     EXPECT_EQ(add.timestamp_ns(), 1000000000u);
+    EXPECT_EQ(msg->stock_locate(), 1u);
 }
 
 TEST(DecodeMessage, DeletePayload)
@@ -163,20 +169,21 @@ TEST(DecodeMessage, ExecutedWithPricePayload)
 
 TEST(Book, InsertAddCreatesBidLevel)
 {
-    Order order(1'000'000'000ull, 12345ull, 'B', 1'500'000u, 100u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 12345ull, 'B', 1'500'000u, 100u);
+    SecurityBook book;
     book.insert(order);
     EXPECT_EQ(book.bid_levels.size(), 1u);
     EXPECT_EQ(book.ask_levels.size(), 0u);
     ASSERT_FALSE(book.bid_levels.begin()->second.orders.empty());
     EXPECT_EQ(book.bid_levels.begin()->second.orders.front().order_reference_number(), 12345u);
+    EXPECT_EQ(book.bid_levels.begin()->second.orders.front().stock_locate(), 1u);
     EXPECT_EQ(resting_quantity(book, 12345), 100u);
 }
 
 TEST(Book, DeleteOrderRemovesRestingOrder)
 {
-    Order order(1'000'000'000ull, 5001ull, 'B', 1'500'000u, 100u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 5001ull, 'B', 1'500'000u, 100u);
+    SecurityBook book;
     book.insert(order);
     ASSERT_TRUE(book.order_mapping.contains(5001));
 
@@ -189,8 +196,8 @@ TEST(Book, DeleteOrderRemovesRestingOrder)
 
 TEST(Book, ExecutePartialReducesQuantity)
 {
-    Order order(1'000'000'000ull, 5002ull, 'S', 1'500'500u, 200u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 5002ull, 'S', 1'500'500u, 200u);
+    SecurityBook book;
     book.insert(order);
 
     book.execute_order(5002, 30);
@@ -201,8 +208,8 @@ TEST(Book, ExecutePartialReducesQuantity)
 
 TEST(Book, ExecuteFullRemovesOrder)
 {
-    Order order(1'000'000'000ull, 5003ull, 'B', 1'499'900u, 50u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 5003ull, 'B', 1'499'900u, 50u);
+    SecurityBook book;
     book.insert(order);
 
     book.execute_order(5003, 50);
@@ -213,8 +220,8 @@ TEST(Book, ExecuteFullRemovesOrder)
 
 TEST(Book, CancelPartialReducesQuantity)
 {
-    Order order(1'000'000'000ull, 5004ull, 'S', 1'501'000u, 75u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 5004ull, 'S', 1'501'000u, 75u);
+    SecurityBook book;
     book.insert(order);
 
     book.cancel_order(5004, 25);
@@ -224,8 +231,8 @@ TEST(Book, CancelPartialReducesQuantity)
 
 TEST(Book, ReplaceMovesPriceAndReference)
 {
-    Order order(1'000'000'000ull, 6004ull, 'S', 1'501'000u, 75u);
-    Book book;
+    Order order(1'000'000'000ull, 1u, 6004ull, 'S', 1'501'000u, 75u);
+    SecurityBook book;
     book.insert(order);
 
     book.replace_order(6004, 6005, 1'500'800u, 60u);
@@ -241,35 +248,41 @@ TEST(Book, ReplaceMovesPriceAndReference)
 TEST(Decoder, SessionMixRebuildsBook)
 {
     Decoder decoder;
-    auto book = decoder.decode_file(fixture("session_mix.bin"));
-    ASSERT_NE(book, nullptr);
+    auto books = decoder.decode_file(fixture("session_mix.bin"));
+    ASSERT_NE(books, nullptr);
+    const auto book = find_security_book(*books, 1);
+    ASSERT_TRUE(book.has_value());
+    EXPECT_EQ((*book)->stock_locate(), 1u);
 
-    EXPECT_EQ(book->bid_levels.size(), 2u);
-    EXPECT_EQ(book->ask_levels.size(), 2u);
+    EXPECT_EQ((*book)->bid_levels.size(), 2u);
+    EXPECT_EQ((*book)->ask_levels.size(), 2u);
 
-    EXPECT_EQ(resting_quantity(*book, 10001), 70u);
-    EXPECT_EQ(level_price_for(*book, 10001), 1'500'000u);
+    EXPECT_EQ(resting_quantity(**book, 10001), 70u);
+    EXPECT_EQ(level_price_for(**book, 10001), 1'500'000u);
 
-    EXPECT_EQ(resting_quantity(*book, 10002), 150u);
-    EXPECT_EQ(level_price_for(*book, 10002), 1'500'500u);
+    EXPECT_EQ(resting_quantity(**book, 10002), 150u);
+    EXPECT_EQ(level_price_for(**book, 10002), 1'500'500u);
 
-    EXPECT_EQ(resting_quantity(*book, 10005), 60u);
-    EXPECT_EQ(level_price_for(*book, 10005), 1'500'800u);
+    EXPECT_EQ(resting_quantity(**book, 10005), 60u);
+    EXPECT_EQ(level_price_for(**book, 10005), 1'500'800u);
 
-    EXPECT_EQ(resting_quantity(*book, 10006), 25u);
-    EXPECT_EQ(level_price_for(*book, 10006), 1'499'500u);
+    EXPECT_EQ(resting_quantity(**book, 10006), 25u);
+    EXPECT_EQ(level_price_for(**book, 10006), 1'499'500u);
 
-    EXPECT_FALSE(book->order_mapping.contains(10003));
-    EXPECT_FALSE(book->order_mapping.contains(10004));
-    EXPECT_EQ(book->order_mapping.size(), 4u);
+    EXPECT_FALSE((*book)->order_mapping.contains(10003));
+    EXPECT_FALSE((*book)->order_mapping.contains(10004));
+    EXPECT_EQ((*book)->order_mapping.size(), 4u);
 }
 
 TEST(Decoder, TinyAddFixture)
 {
     Decoder decoder;
-    auto book = decoder.decode_file(fixture("add_order_a.bin"));
-    ASSERT_NE(book, nullptr);
-    EXPECT_EQ(book->bid_levels.size(), 1u);
-    EXPECT_EQ(book->ask_levels.size(), 0u);
-    EXPECT_EQ(resting_quantity(*book, 12345), 100u);
+    auto books = decoder.decode_file(fixture("add_order_a.bin"));
+    ASSERT_NE(books, nullptr);
+    const auto book = find_security_book(*books, 1);
+    ASSERT_TRUE(book.has_value());
+    EXPECT_EQ((*book)->stock_locate(), 1u);
+    EXPECT_EQ((*book)->bid_levels.size(), 1u);
+    EXPECT_EQ((*book)->ask_levels.size(), 0u);
+    EXPECT_EQ(resting_quantity(**book, 12345), 100u);
 }

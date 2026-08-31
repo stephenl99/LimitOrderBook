@@ -13,6 +13,10 @@ public:
         timestamp_ns_ = timestamp_ns;
     }
 
+    void set_stock_locate(uint16_t stock_locate) {
+        stock_locate_ = stock_locate;
+    }
+
     void set_order_reference_number(uint64_t order_reference_number) {
         order_reference_number_ = order_reference_number;
     }
@@ -30,6 +34,7 @@ public:
     }
 
     Order(uint64_t timestamp_ns,
+          uint16_t stock_locate,
           uint64_t order_reference_number,
           char side,
           uint32_t price,
@@ -40,6 +45,7 @@ public:
     Order(const Order& other);
 
     [[nodiscard]] uint64_t timestamp_ns() const { return timestamp_ns_; }
+    [[nodiscard]] uint16_t stock_locate() const { return stock_locate_; }
     [[nodiscard]] uint64_t order_reference_number() const { return order_reference_number_; }
     [[nodiscard]] Side side() const { return side_; }
     [[nodiscard]] uint32_t price() const { return price_; }
@@ -49,6 +55,7 @@ public:
 
 private:
     uint64_t timestamp_ns_;
+    uint16_t stock_locate_;
     uint64_t order_reference_number_;
     Side side_;
     uint32_t price_;
