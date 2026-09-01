@@ -280,9 +280,9 @@ TEST(StockDirectory, AddAndLookup)
 
 TEST(Decoder, SessionMixRebuildsBook)
 {
-    Decoder decoder;
-    auto books = decoder.decode_file(fixture("session_mix.bin"));
-    ASSERT_NE(books, nullptr);
+    auto result = Decoder::decode_file(fixture("session_mix.bin"));
+    ASSERT_TRUE(result.has_value()) << result.error();
+    const std::unique_ptr<Book>& books = *result;
     const auto book = find_security_book(*books, 1);
     ASSERT_TRUE(book.has_value());
     EXPECT_EQ((*book)->stock_locate(), 1u);
@@ -309,9 +309,9 @@ TEST(Decoder, SessionMixRebuildsBook)
 
 TEST(Decoder, TinyAddFixture)
 {
-    Decoder decoder;
-    auto books = decoder.decode_file(fixture("add_order_a.bin"));
-    ASSERT_NE(books, nullptr);
+    auto result = Decoder::decode_file(fixture("add_order_a.bin"));
+    ASSERT_TRUE(result.has_value()) << result.error();
+    const std::unique_ptr<Book>& books = *result;
     const auto book = find_security_book(*books, 1);
     ASSERT_TRUE(book.has_value());
     EXPECT_EQ((*book)->stock_locate(), 1u);

@@ -19,12 +19,11 @@
 #include "Order.h"
 
 
-std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
+std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs::path& input_path)
 {
     std::ifstream input_stream(input_path, std::ios::binary);
     if (!input_stream) {
-        std::cerr << "decode_file: cannot open " << input_path << "\n";
-        return nullptr;
+        return std::unexpected(std::string("decode_file: cannot open ") + input_path.string());
     }
     std::mutex mtx;
     std::atomic<bool> finished_parsing = false;
@@ -54,11 +53,11 @@ std::unique_ptr<Book> Decoder::decode_file(const fs::path& input_path)
         finished_parsing = true;
     };
     auto handle_function = [&] {
-        while (q.size() > 0 || !finished_parsing) {
-            itch::Message* message = nullptr;
+        while (!q.empty() || !finished_parsing) {
+            std::unique_ptr<itch::Message> message = nullptr;
             while (message == nullptr) {
-                if (q.size() > 0) {
-                    message = q.front().get();
+                if (!q.empty()) {
+                    message = std::move(q.front());
                     q.pop();
                 }
             }

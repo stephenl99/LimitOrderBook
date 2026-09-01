@@ -4,13 +4,15 @@
 
 #pragma once
 
+#include <expected>
 #include <filesystem>
 #include <memory>
+#include <string>
 
 #include "Book.h"
 
 namespace fs = std::filesystem;
 
 namespace Decoder {
-    std::unique_ptr<Book> decode_file(const fs::path& input_path);
-};
+    std::expected<std::unique_ptr<Book>, std::string> decode_file(const fs::path& input_path);
+}

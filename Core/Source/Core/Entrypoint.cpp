@@ -11,11 +11,12 @@
 
 void Entrypoint::enter(const char* path) {
     Logger::set_min_level(Logger::Level::Debug);
-    std::unique_ptr<Book> books = Decoder::decode_file(path);
-    if (books == nullptr) {
-        Logger::warn("Failed to make books contain anything");
+    auto result = Decoder::decode_file(path);
+    if (!result) {
+        Logger::warn("Failed to decode: " + result.error());
         return;
     }
+    const std::unique_ptr<Book>& books = *result;
     const auto book = books->find(1);
     if (!book.has_value()) {
         std::cout << "core_test: no book for locate 1\n";

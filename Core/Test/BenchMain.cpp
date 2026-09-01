@@ -57,7 +57,12 @@ int main(int argc, char* argv[])
 
     const auto t0 = std::chrono::steady_clock::now();
     for (int i = 0; i < repeats; ++i) {
-        std::unique_ptr<Book> book = Decoder::decode_file(path);
+        auto result = Decoder::decode_file(path);
+        if (!result) {
+            std::cerr << "bench: decode_file failed on repeat " << i << ": " << result.error() << "\n";
+            return 1;
+        }
+        const std::unique_ptr<Book>& book = *result;
         if (book == nullptr) {
             std::cerr << "bench: decode_file failed on repeat " << i << "\n";
             return 1;

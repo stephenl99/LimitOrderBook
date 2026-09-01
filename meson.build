@@ -9,6 +9,10 @@ project(
   ],
 )
 
+if get_option('cpp_std') != 'c++23'
+  error('This project requires -Dcpp_std=c++23 (got: ' + get_option('cpp_std') + ')')
+endif
+
 py = find_program('python3')
 
 core_cpp = run_command(

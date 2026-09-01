@@ -37,7 +37,7 @@ void SecurityBook::insert(Order& order)
 
     if (side == Side::ASK) {
         auto& level = ask_levels[price];
-        auto it = level.orders.insert(level.orders.end(), std::move(order));
+        const auto it = level.orders.insert(level.orders.end(), std::move(order));
         order_mapping.emplace(ref,
                               std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
     } else {
