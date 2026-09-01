@@ -29,11 +29,11 @@ SecurityBook::SecurityBook(uint16_t stock_locate)
 {
 }
 
-void SecurityBook::insert(Order& order)
+void SecurityBook::insert(std::unique_ptr<Order> order)
 {
-    const uint32_t price = order.price();
-    const uint64_t ref = order.order_reference_number();
-    const Side side = order.side();
+    const uint32_t price = order->price();
+    const uint64_t ref = order->order_reference_number();
+    const Side side = order->side();
 
     if (side == Side::ASK) {
         auto& level = ask_levels[price];
@@ -42,7 +42,7 @@ void SecurityBook::insert(Order& order)
                               std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
     } else {
         auto& level = bid_levels[price];
-        auto it = level.orders.insert(level.orders.end(), std::move(order));
+        const auto it = level.orders.insert(level.orders.end(), std::move(order));
         order_mapping.emplace(ref,
                               std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
     }
@@ -83,7 +83,7 @@ void SecurityBook::reduce_order_quantity(uint64_t order_reference_number,
     }
 
     auto& handle = *map_it->second;
-    const uint32_t quantity_remaining = handle.it->quantity();
+    const uint32_t quantity_remaining = handle.it->get()->quantity();
 
     if (shares > quantity_remaining) {
         std::cout << "Attempted to " << action << " " << shares << " shares of order "
@@ -99,7 +99,7 @@ void SecurityBook::reduce_order_quantity(uint64_t order_reference_number,
         return;
     }
 
-    handle.it->set_quantity(new_quantity);
+    handle.it->get()->set_quantity(new_quantity);
 }
 
 void SecurityBook::execute_order(uint64_t order_reference_number, uint32_t executed_shares)

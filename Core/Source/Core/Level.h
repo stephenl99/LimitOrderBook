@@ -5,5 +5,5 @@
 #include "Order.h"
 class Level {
 public:
-    std::list<Order> orders;
+    std::list<std::unique_ptr<Order>> orders;
 };
