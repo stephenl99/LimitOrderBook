@@ -7,11 +7,13 @@
 #include <iostream>
 
 #include "Decoder.h"
+#include "Logger.h"
 
 void Entrypoint::enter(const char* path) {
-    Decoder decoder;
-    std::unique_ptr<Book> books = decoder.decode_file(path);
+    Logger::set_min_level(Logger::Level::Debug);
+    std::unique_ptr<Book> books = Decoder::decode_file(path);
     if (books == nullptr) {
+        Logger::warn("Failed to make books contain anything");
         return;
     }
     const auto book = books->find(1);

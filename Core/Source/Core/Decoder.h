@@ -11,7 +11,6 @@
 
 namespace fs = std::filesystem;
 
-class Decoder {
-public:
+namespace Decoder {
     std::unique_ptr<Book> decode_file(const fs::path& input_path);
 };

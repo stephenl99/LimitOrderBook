@@ -1,5 +1,6 @@
 # --- Meson / Ninja ---
 build/
+build-release/
 builddir/
 .build/
 meson-logs/
@@ -39,6 +40,9 @@ core_test
 # --- Personal notes (local only) ---
 LOCAL_CHEATSHEET.txt
 LOCAL_ROADMAP.txt
+
+# Generated benchmark fixture (regen: python3 testdata/gen_big_mix.py)
+testdata/big_mix.bin
 
 # --- Cursor / local AI tooling ---
 .ai/

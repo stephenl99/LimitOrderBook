@@ -9,4 +9,4 @@ else
 fi
 ln -sfn build/compile_commands.json compile_commands.json
 meson compile -C build core_test
-exec lldb ./build/core_test -- testdata/add_order_a.bin "$@"
+exec lldb ./build/core_test -- testdata/session_mix.bin "$@"
