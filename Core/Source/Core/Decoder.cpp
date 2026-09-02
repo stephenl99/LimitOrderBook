@@ -26,7 +26,7 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
         return std::unexpected(std::string("decode_file: cannot open ") + input_path.string());
     }
     std::mutex mtx;
-    std::atomic<bool> finished_parsing = false;
+    std::atomic finished_parsing = false;
     auto book = std::make_unique<Book>();
     std::queue<std::unique_ptr<itch::Message>> q;
     auto parse_function = [&] {
@@ -55,11 +55,14 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
     auto handle_function = [&] {
         while (!q.empty() || !finished_parsing) {
             std::unique_ptr<itch::Message> message = nullptr;
-            while (message == nullptr) {
+            while (message == nullptr && !finished_parsing) {
                 if (!q.empty()) {
                     message = std::move(q.front());
                     q.pop();
                 }
+            }
+            if (message == nullptr) {
+                break;
             }
             const uint16_t stock_locate = message->stock_locate();
             SecurityBook& security_book = book->book_for(stock_locate);
