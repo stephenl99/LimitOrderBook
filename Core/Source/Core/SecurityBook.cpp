@@ -29,7 +29,7 @@ SecurityBook::SecurityBook(uint16_t stock_locate)
 {
 }
 
-void SecurityBook::insert(std::unique_ptr<Order> order)
+void SecurityBook::insert(std::unique_ptr<Order>&& order)
 {
     const uint32_t price = order->price();
     const uint64_t ref = order->order_reference_number();
@@ -39,12 +39,11 @@ void SecurityBook::insert(std::unique_ptr<Order> order)
         auto& level = ask_levels[price];
         const auto it = level.orders.insert(level.orders.end(), std::move(order));
         order_mapping.emplace(ref,
-                              std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
+                              OrderIterator(level, it, price, side));
     } else {
         auto& level = bid_levels[price];
         const auto it = level.orders.insert(level.orders.end(), std::move(order));
-        order_mapping.emplace(ref,
-                              std::make_unique<OrderIterator>(OrderIterator{.level = level, .it = it, .price = price, .side = side}));
+        order_mapping.emplace(ref, OrderIterator(level, it, price, side));
     }
 }
 
@@ -55,7 +54,7 @@ void SecurityBook::remove_order(uint64_t order_reference_number)
         return;
     }
 
-    OrderIterator& handle = *map_it->second;
+    OrderIterator& handle = map_it->second;
     handle.level.orders.erase(handle.it);
     erase_empty_level(bid_levels, ask_levels, handle);
     order_mapping.erase(map_it);
@@ -82,7 +81,7 @@ void SecurityBook::reduce_order_quantity(uint64_t order_reference_number,
         return;
     }
 
-    auto& handle = *map_it->second;
+    auto& handle = map_it->second;
     const uint32_t quantity_remaining = handle.it->get()->quantity();
 
     if (shares > quantity_remaining) {
@@ -124,17 +123,16 @@ void SecurityBook::replace_order(uint64_t old_order_reference_number,
         return;
     }
 
-    const Order& old_order = *map_it->second->it;
-    const uint64_t timestamp_ns = old_order.timestamp_ns();
-    const char side = (old_order.side() == Side::BID) ? 'B' : 'S';
+    std::unique_ptr<Order>::pointer old_order = map_it->second.it->get();
+    const uint64_t timestamp_ns = old_order->timestamp_ns();
+    const char side = (old_order->side() == Side::BID) ? 'B' : 'S';
 
     remove_order(old_order_reference_number);
 
-    Order replacement(timestamp_ns,
-                      old_order.stock_locate(),
+    insert(std::make_unique<Order>(timestamp_ns,
+                      old_order->stock_locate(),
                       new_order_reference_number,
                       side,
                       new_price,
-                      new_shares);
-    insert(replacement);
+                      new_shares));
 }

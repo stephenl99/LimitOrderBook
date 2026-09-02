@@ -64,8 +64,8 @@ std::string symbol_for_locate(const StockDirectory* directory, uint16_t stock_lo
 uint32_t level_total_shares(const Level& level)
 {
     uint32_t total = 0;
-    for (const Order& order : level.orders) {
-        total += order.quantity();
+    for (const std::unique_ptr<Order>& order : level.orders) {
+        total += order->quantity();
     }
     return total;
 }
@@ -298,8 +298,8 @@ void log_security_book_depth(const SecurityBook& book, const StockDirectory* dir
         }
         out << "\n    price=" << format_price(price) << " shares=" << level_total_shares(level)
             << " orders=" << level.orders.size();
-        for (const Order& order : level.orders) {
-            out << "\n      ref=" << order.order_reference_number() << " qty=" << order.quantity();
+        for (const std::unique_ptr<Order>& order : level.orders) {
+            out << "\n      ref=" << order->order_reference_number() << " qty=" << order->quantity();
         }
         ++bid_count;
     }
@@ -312,8 +312,8 @@ void log_security_book_depth(const SecurityBook& book, const StockDirectory* dir
         }
         out << "\n    price=" << format_price(price) << " shares=" << level_total_shares(level)
             << " orders=" << level.orders.size();
-        for (const Order& order : level.orders) {
-            out << "\n      ref=" << order.order_reference_number() << " qty=" << order.quantity();
+        for (const std::unique_ptr<Order>& order : level.orders) {
+            out << "\n      ref=" << order->order_reference_number() << " qty=" << order->quantity();
         }
         ++ask_count;
     }

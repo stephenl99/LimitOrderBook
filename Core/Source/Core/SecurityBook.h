@@ -17,6 +17,8 @@ struct OrderIterator {
     std::list<std::unique_ptr<Order>>::iterator it;
     uint32_t price;
     Side side;
+    OrderIterator(Level& level, const std::list<std::unique_ptr<Order>>::iterator it,
+        const uint32_t price, const Side side) : level(level), it(it), price(price), side(side) {}
 };
 
 class SecurityBook {
@@ -27,8 +29,8 @@ public:
 
     std::map<uint32_t, Level, std::greater<>> bid_levels;
     std::map<uint32_t, Level, std::less<>> ask_levels;
-    std::unordered_map<uint64_t, std::unique_ptr<OrderIterator>> order_mapping;
-    void insert(std::unique_ptr<Order> order);
+    std::unordered_map<uint64_t, OrderIterator> order_mapping;
+    void insert(std::unique_ptr<Order> &&order);
 
     void delete_order(uint64_t order_reference_number);
 

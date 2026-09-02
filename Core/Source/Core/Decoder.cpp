@@ -73,13 +73,12 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
                 case 'A':
                 case 'F': {
                     const auto& add = dynamic_cast<const itch::AddOrderMessage&>(*message);
-                    Order order(add.timestamp_ns(),
+                    security_book.insert(std::make_unique<Order>(add.timestamp_ns(),
                                 stock_locate,
                                 add.order_reference_number(),
                                 add.side(),
                                 add.price(),
-                                add.shares());
-                    security_book.insert(order);
+                                add.shares()));
                     break;
                 }
                 case 'P':

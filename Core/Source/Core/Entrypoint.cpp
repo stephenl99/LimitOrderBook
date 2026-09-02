@@ -29,7 +29,7 @@ void Entrypoint::enter(const char* path) {
     if (!(*book)->bid_levels.empty()) {
         const Level& level = (*book)->bid_levels.begin()->second;
         if (!level.orders.empty()) {
-            std::cout << level.orders.front().order_reference_number() << "\n";
+            std::cout << level.orders.front()->order_reference_number() << "\n";
         }
     }
 }
