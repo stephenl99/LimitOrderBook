@@ -46,7 +46,7 @@ std::optional<uint32_t> resting_quantity(const SecurityBook& book, uint64_t orde
     if (it == book.order_mapping.end()) {
         return std::nullopt;
     }
-    return it->second->it->quantity();
+    return it->second.it->get()->quantity();
 }
 
 std::optional<uint32_t> level_price_for(const SecurityBook& book, uint64_t order_reference_number)
@@ -55,7 +55,7 @@ std::optional<uint32_t> level_price_for(const SecurityBook& book, uint64_t order
     if (it == book.order_mapping.end()) {
         return std::nullopt;
     }
-    return it->second->price;
+    return it->second.price;
 }
 
 void write_be64(std::vector<uint8_t>& data, size_t offset, uint64_t value)
@@ -77,6 +77,11 @@ void write_be32(std::vector<uint8_t>& data, size_t offset, uint32_t value)
 std::optional<SecurityBook*> find_security_book(const Book& books, uint16_t stock_locate = 1)
 {
     return books.find(stock_locate);
+}
+
+void insert_order(SecurityBook& book, Order order)
+{
+    book.insert(std::make_unique<Order>(std::move(order)));
 }
 
 }  // namespace
@@ -193,12 +198,12 @@ TEST(Book, InsertAddCreatesBidLevel)
 {
     Order order(1'000'000'000ull, 1u, 12345ull, 'B', 1'500'000u, 100u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
     EXPECT_EQ(book.bid_levels.size(), 1u);
     EXPECT_EQ(book.ask_levels.size(), 0u);
     ASSERT_FALSE(book.bid_levels.begin()->second.orders.empty());
-    EXPECT_EQ(book.bid_levels.begin()->second.orders.front().order_reference_number(), 12345u);
-    EXPECT_EQ(book.bid_levels.begin()->second.orders.front().stock_locate(), 1u);
+    EXPECT_EQ(book.bid_levels.begin()->second.orders.front()->order_reference_number(), 12345u);
+    EXPECT_EQ(book.bid_levels.begin()->second.orders.front()->stock_locate(), 1u);
     EXPECT_EQ(resting_quantity(book, 12345), 100u);
 }
 
@@ -206,7 +211,7 @@ TEST(Book, DeleteOrderRemovesRestingOrder)
 {
     Order order(1'000'000'000ull, 1u, 5001ull, 'B', 1'500'000u, 100u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
     ASSERT_TRUE(book.order_mapping.contains(5001));
 
     book.delete_order(5001);
@@ -220,7 +225,7 @@ TEST(Book, ExecutePartialReducesQuantity)
 {
     Order order(1'000'000'000ull, 1u, 5002ull, 'S', 1'500'500u, 200u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
 
     book.execute_order(5002, 30);
 
@@ -232,7 +237,7 @@ TEST(Book, ExecuteFullRemovesOrder)
 {
     Order order(1'000'000'000ull, 1u, 5003ull, 'B', 1'499'900u, 50u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
 
     book.execute_order(5003, 50);
 
@@ -244,7 +249,7 @@ TEST(Book, CancelPartialReducesQuantity)
 {
     Order order(1'000'000'000ull, 1u, 5004ull, 'S', 1'501'000u, 75u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
 
     book.cancel_order(5004, 25);
 
@@ -255,7 +260,7 @@ TEST(Book, ReplaceMovesPriceAndReference)
 {
     Order order(1'000'000'000ull, 1u, 6004ull, 'S', 1'501'000u, 75u);
     SecurityBook book;
-    book.insert(order);
+    insert_order(book, order);
 
     book.replace_order(6004, 6005, 1'500'800u, 60u);
 
