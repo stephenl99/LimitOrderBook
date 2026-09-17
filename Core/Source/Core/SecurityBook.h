@@ -60,8 +60,6 @@ struct LevelSummary {
     uint32_t total_shares;
 };
 
-// Top `depth` price levels of a bid_levels/ask_levels map, nearest-to-market first
-// (the map's own comparator already orders it that way).
 template <typename LevelMap>
 std::vector<LevelSummary> depth_snapshot(const LevelMap& levels, std::size_t depth)
 {
@@ -82,4 +80,32 @@ std::vector<LevelSummary> depth_snapshot(const LevelMap& levels, std::size_t dep
         result.push_back(summary);
     }
     return result;
+}
+
+// Volume-weighted average price across the top `depth` levels of a side.
+// Returns 0.0 if the side is empty.
+struct SumCountPair {
+    double sum;
+    int count;
+};
+template <typename LevelMap>
+double vwap(const LevelMap& levels, std::size_t depth)
+{
+    const std::vector<LevelSummary> summary = depth_snapshot(levels, depth);
+    if (summary.empty()) {
+        return 0.0;
+    }
+    auto weighted_prices = summary
+        | std::views::transform([&](const LevelSummary& level) {
+              double total_mass_at_price = static_cast<double>(level.price) * level.total_shares;
+              return SumCountPair(total_mass_at_price, level.total_shares);
+          });
+    const auto weighted_sum = std::accumulate(weighted_prices.begin(), weighted_prices.end(), 0.0, [](double acc, const SumCountPair& pair) {
+        return acc + pair.sum;
+    });
+    const auto total = std::accumulate(weighted_prices.begin(), weighted_prices.end(), 0.0, [](int acc, const SumCountPair& pair) {
+        return acc + pair.count;
+    });
+
+    return weighted_sum / total;
 }

@@ -41,4 +41,7 @@ void Entrypoint::enter(const char* path) {
     for (const auto& summary : depth_snapshot((*book)->ask_levels, 5)) {
         std::cout << "  price=" << summary.price << " shares=" << summary.total_shares << "\n";
     }
+
+    std::cout << " bid_vwap=" << vwap((*book)->bid_levels, 5) << "\n"
+              << " ask_vwap=" << vwap((*book)->ask_levels, 5) << "\n";
 }
