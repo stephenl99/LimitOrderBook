@@ -44,4 +44,13 @@ void Entrypoint::enter(const char* path) {
 
     std::cout << " bid_vwap=" << vwap((*book)->bid_levels, 5) << "\n"
               << " ask_vwap=" << vwap((*book)->ask_levels, 5) << "\n";
+
+    std::cout << " bids within 10c of best:\n";
+    for (const auto& summary : levels_within_cents((*book)->bid_levels, 1000)) {
+        std::cout << "  price=" << summary.price << " shares=" << summary.total_shares << "\n";
+    }
+    std::cout << " asks within 10c of best:\n";
+    for (const auto& summary : levels_within_cents((*book)->ask_levels, 1000)) {
+        std::cout << "  price=" << summary.price << " shares=" << summary.total_shares << "\n";
+    }
 }

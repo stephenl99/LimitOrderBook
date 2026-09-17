@@ -4,10 +4,12 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <list>
 #include <map>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <ranges>
 #include <unordered_map>
 #include <vector>
@@ -59,9 +61,15 @@ struct LevelSummary {
     uint32_t price;
     uint32_t total_shares;
 };
+template <typename T>
+concept LevelMap = std::ranges::range<T> && requires(const T& levels, std::ranges::range_value_t<T> entry) {
+    { levels.empty() } -> std::convertible_to<bool>;
+    { entry.first } -> std::convertible_to<uint32_t>;
+    { entry.second.orders } -> std::ranges::range;
+};
 
-template <typename LevelMap>
-std::vector<LevelSummary> depth_snapshot(const LevelMap& levels, std::size_t depth)
+template <LevelMap Levels>
+std::vector<LevelSummary> depth_snapshot(const Levels& levels, std::size_t depth)
 {
     auto summarize = [](const auto& entry) {
         const auto& [price, level] = entry;
@@ -88,8 +96,8 @@ struct SumCountPair {
     double sum;
     int count;
 };
-template <typename LevelMap>
-double vwap(const LevelMap& levels, std::size_t depth)
+template <LevelMap Levels>
+double vwap(const Levels& levels, std::size_t depth)
 {
     const std::vector<LevelSummary> summary = depth_snapshot(levels, depth);
     if (summary.empty()) {
@@ -108,4 +116,39 @@ double vwap(const LevelMap& levels, std::size_t depth)
     });
 
     return weighted_sum / total;
+}
+
+// Best (nearest-to-market) price on a side, or nullopt if the side is empty.
+template <LevelMap Levels>
+std::optional<uint32_t> best_price(const Levels& levels)
+{
+    if (levels.empty()) {
+        return std::nullopt;
+    }
+    return levels.begin()->first;
+}
+
+// All price levels within `cents` of the best price on a side.
+template <LevelMap Levels>
+std::vector<LevelSummary> levels_within_cents(const Levels& levels, uint32_t cents)
+{
+    const auto best = best_price(levels);
+    if (!best.has_value()) {
+        return {};
+    }
+
+    auto near_best = levels
+        | std::views::take_while([&](const auto& entry) {
+              const int64_t diff = static_cast<int64_t>(entry.first) - static_cast<int64_t>(*best);
+              return std::abs(diff) <= static_cast<int64_t>(cents);
+          });
+
+    std::vector<LevelSummary> result;
+    for (const auto& [price, level] : near_best) {
+        auto shares = level.orders
+            | std::views::transform([](const auto& order) { return order->quantity(); });
+        const uint32_t total_shares = std::accumulate(shares.begin(), shares.end(), 0u);
+        result.push_back(LevelSummary{price, total_shares});
+    }
+    return result;
 }
