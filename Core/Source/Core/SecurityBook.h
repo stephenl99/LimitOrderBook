@@ -7,7 +7,10 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <numeric>
+#include <ranges>
 #include <unordered_map>
+#include <vector>
 
 #include "Level.h"
 #include "Order.h"
@@ -51,3 +54,32 @@ private:
 
     uint16_t stock_locate_;
 };
+
+struct LevelSummary {
+    uint32_t price;
+    uint32_t total_shares;
+};
+
+// Top `depth` price levels of a bid_levels/ask_levels map, nearest-to-market first
+// (the map's own comparator already orders it that way).
+template <typename LevelMap>
+std::vector<LevelSummary> depth_snapshot(const LevelMap& levels, std::size_t depth)
+{
+    auto summarize = [](const auto& entry) {
+        const auto& [price, level] = entry;
+        auto shares = level.orders
+            | std::views::transform([](const auto& order) { return order->quantity(); });
+        const uint32_t total_shares = std::accumulate(shares.begin(), shares.end(), 0u);
+        return LevelSummary{price, total_shares};
+    };
+
+    auto view = levels
+        | std::views::transform(summarize)
+        | std::views::take(depth);
+
+    std::vector<LevelSummary> result;
+    for (const auto& summary : view) {
+        result.push_back(summary);
+    }
+    return result;
+}

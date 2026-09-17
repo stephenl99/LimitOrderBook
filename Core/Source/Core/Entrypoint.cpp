@@ -32,4 +32,13 @@ void Entrypoint::enter(const char* path) {
             std::cout << level.orders.front()->order_reference_number() << "\n";
         }
     }
+
+    std::cout << " bids:\n";
+    for (const auto& summary : depth_snapshot((*book)->bid_levels, 5)) {
+        std::cout << "  price=" << summary.price << " shares=" << summary.total_shares << "\n";
+    }
+    std::cout << " asks:\n";
+    for (const auto& summary : depth_snapshot((*book)->ask_levels, 5)) {
+        std::cout << "  price=" << summary.price << " shares=" << summary.total_shares << "\n";
+    }
 }

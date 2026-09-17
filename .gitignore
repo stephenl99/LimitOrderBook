@@ -6,6 +6,9 @@ builddir/
 meson-logs/
 compile_commands.json
 
+# --- Makefile (bypasses meson/gtest) ---
+build-make/
+
 # GoogleTest download (keep gtest.wrap + packagefiles/)
 subprojects/googletest-*/
 subprojects/packagecache/
