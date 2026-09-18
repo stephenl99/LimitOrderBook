@@ -2,4 +2,4 @@ CompileFlags:
   Add:
     - -ICore/Source
     - -std=c++23
-CompilationDatabase: build
+CompilationDatabase: .

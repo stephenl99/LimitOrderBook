@@ -5,28 +5,28 @@
       "name": "debug",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/core_test",
+      "program": "${workspaceFolder}/build-make/bin/core_test",
       "args": ["testdata/add_order_a.bin"],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "meson: build core_test"
+      "preLaunchTask": "make: build core_test"
     },
     {
       "name": "LLDB: core_test",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/core_test",
+      "program": "${workspaceFolder}/build-make/bin/core_test",
       "args": ["testdata/add_order_a.bin"],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "meson: build core_test"
+      "preLaunchTask": "make: build core_test"
     },
     {
       "name": "LLDB: app",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/app",
+      "program": "${workspaceFolder}/build-make/bin/app",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "meson: build app"
+      "preLaunchTask": "make: build app"
     },
     {
       "name": "Run App (no debug)",

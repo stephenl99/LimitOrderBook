@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "meson: build app",
+      "label": "make: build app",
       "type": "shell",
-      "command": "meson setup build --reconfigure 2>/dev/null || meson setup build; meson compile -C build app",
+      "command": "make app",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -15,9 +15,9 @@
       "problemMatcher": ["$gcc"]
     },
     {
-      "label": "meson: build core_test",
+      "label": "make: build core_test",
       "type": "shell",
-      "command": "meson setup build --reconfigure 2>/dev/null || meson setup build; meson compile -C build core_test",
+      "command": "make core_test",
       "options": {
         "cwd": "${workspaceFolder}"
       },

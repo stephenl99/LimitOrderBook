@@ -1,12 +1,5 @@
 #!/bin/zsh
 set -euo pipefail
 cd "$(dirname "$0")"
-
-if [[ -d build ]]; then
-  meson setup build --reconfigure
-else
-  meson setup build
-fi
-ln -sfn build/compile_commands.json compile_commands.json
-meson compile -C build core_test
-exec lldb ./build/core_test -- testdata/session_mix.bin "$@"
+make core_test
+exec lldb ./build-make/bin/core_test -- testdata/session_mix.bin "$@"

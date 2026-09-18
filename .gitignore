@@ -1,17 +1,7 @@
-# --- Meson / Ninja ---
-build/
-build-release/
-builddir/
-.build/
-meson-logs/
-compile_commands.json
-
-# --- Makefile (bypasses meson/gtest) ---
+# --- Makefile build (the build system; meson dropped) ---
 build-make/
-
-# GoogleTest download (keep gtest.wrap + packagefiles/)
-subprojects/googletest-*/
-subprojects/packagecache/
+build-make-release/
+compile_commands.json
 
 # --- Compiled artifacts (if they leak outside build/) ---
 *.o

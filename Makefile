@@ -1,13 +1,19 @@
 CXX := clang++
-CXXFLAGS := -std=c++23 -Wall -Wextra -O0 -g -ICore/Source
 
+ifdef RELEASE
+CXXFLAGS := -std=c++23 -Wall -Wextra -O2 -DNDEBUG -ICore/Source
+BUILD := build-make-release
+else
+CXXFLAGS := -std=c++23 -Wall -Wextra -O0 -g -ICore/Source
 BUILD := build-make
+endif
+
 BIN := $(BUILD)/bin
 
 CORE_SRCS := $(shell find Core/Source -name '*.cpp')
 CORE_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(CORE_SRCS))
 
-.PHONY: all clean core_test app itch_dump bench
+.PHONY: all clean core_test app itch_dump bench compile_commands
 
 all: core_test app itch_dump bench
 
@@ -35,6 +41,10 @@ $(BIN)/bench: $(CORE_OBJS) $(BUILD)/Core/Test/BenchMain.o
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Regenerates compile_commands.json for clangd/IDE tooling.
+compile_commands:
+	@python3 tools/gen_compile_commands.py
 
 clean:
 	rm -rf $(BUILD)
