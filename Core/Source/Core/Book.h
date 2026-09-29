@@ -15,10 +15,10 @@
 class Book {
 public:
     StockDirectory directory;
-    SecurityBook& book_for(uint16_t stock_locate);
-    [[nodiscard]] std::optional<SecurityBook *> find(uint16_t stock_locate) const;
-    [[nodiscard]] std::vector<uint16_t> security_locates() const;
+    SecurityBook& book_for(InstrumentId stock_locate);
+    [[nodiscard]] std::optional<SecurityBook *> find(InstrumentId stock_locate) const;
+    [[nodiscard]] std::vector<InstrumentId> security_locates() const;
 
 private:
-    std::unordered_map<uint16_t, std::unique_ptr<SecurityBook>> security_books;
+    std::unordered_map<InstrumentId, std::unique_ptr<SecurityBook>> security_books;
 };

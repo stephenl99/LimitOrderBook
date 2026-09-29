@@ -20,20 +20,20 @@
 struct OrderIterator {
     Level& level;
     std::list<std::unique_ptr<Order>>::iterator it;
-    uint32_t price;
+    Price price;
     Side side;
     OrderIterator(Level& level, const std::list<std::unique_ptr<Order>>::iterator it,
-        const uint32_t price, const Side side) : level(level), it(it), price(price), side(side) {}
+        const Price price, const Side side) : level(level), it(it), price(price), side(side) {}
 };
 
 class SecurityBook {
 public:
-    explicit SecurityBook(uint16_t stock_locate = 0);
+    explicit SecurityBook(InstrumentId stock_locate = 0);
 
-    [[nodiscard]] uint16_t stock_locate() const { return stock_locate_; }
+    [[nodiscard]] InstrumentId stock_locate() const { return stock_locate_; }
 
-    std::map<uint32_t, Level, std::greater<>> bid_levels;
-    std::map<uint32_t, Level, std::less<>> ask_levels;
+    std::map<Price, Level, std::greater<>> bid_levels;
+    std::map<Price, Level, std::less<>> ask_levels;
     std::unordered_map<uint64_t, OrderIterator> order_mapping;
     void insert(std::unique_ptr<Order> &&order);
 
@@ -45,8 +45,12 @@ public:
 
     void replace_order(uint64_t old_order_reference_number,
                        uint64_t new_order_reference_number,
-                       uint32_t new_price,
+                       Price new_price,
                        uint32_t new_shares);
+
+    void modify_order(uint64_t order_reference_number, Price new_price, uint32_t new_shares);
+
+    void clear();
 
 private:
     void remove_order(uint64_t order_reference_number);
@@ -54,17 +58,17 @@ private:
                                uint32_t shares,
                                const char* action);
 
-    uint16_t stock_locate_;
+    InstrumentId stock_locate_;
 };
 
 struct LevelSummary {
-    uint32_t price;
+    Price price;
     uint32_t total_shares;
 };
 template <typename T>
 concept LevelMap = std::ranges::range<T> && requires(const T& levels, std::ranges::range_value_t<T> entry) {
     { levels.empty() } -> std::convertible_to<bool>;
-    { entry.first } -> std::convertible_to<uint32_t>;
+    { entry.first } -> std::convertible_to<Price>;
     { entry.second.orders } -> std::ranges::range;
 };
 
@@ -109,7 +113,7 @@ double vwap(const Levels& levels, std::size_t depth)
     const auto weighted_sum = std::accumulate(weighted_prices.begin(), weighted_prices.end(), 0.0, [](double acc, const SumCountPair& pair) {
         return acc + pair.sum;
     });
-    const auto total = std::accumulate(weighted_prices.begin(), weighted_prices.end(), 0.0, [](int acc, const SumCountPair& pair) {
+    const auto total = std::accumulate(weighted_prices.begin(), weighted_prices.end(), 0.0, [](double acc, const SumCountPair& pair) {
         return acc + pair.count;
     });
 
@@ -117,7 +121,7 @@ double vwap(const Levels& levels, std::size_t depth)
 }
 
 template <LevelMap Levels>
-std::optional<uint32_t> best_price(const Levels& levels)
+std::optional<Price> best_price(const Levels& levels)
 {
     if (levels.empty()) {
         return std::nullopt;
@@ -126,7 +130,7 @@ std::optional<uint32_t> best_price(const Levels& levels)
 }
 
 template <LevelMap Levels>
-std::vector<LevelSummary> levels_within_cents(const Levels& levels, uint32_t cents)
+std::vector<LevelSummary> levels_within_cents(const Levels& levels, Price cents)
 {
     const auto best = best_price(levels);
     if (!best.has_value()) {
@@ -135,8 +139,7 @@ std::vector<LevelSummary> levels_within_cents(const Levels& levels, uint32_t cen
 
     auto near_best = levels
         | std::views::take_while([&](const auto& entry) {
-              const int64_t diff = static_cast<int64_t>(entry.first) - static_cast<int64_t>(*best);
-              return std::abs(diff) <= static_cast<int64_t>(cents);
+              return std::abs(entry.first - *best) <= cents;
           });
 
     std::vector<LevelSummary> result;

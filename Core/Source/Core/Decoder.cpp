@@ -3,13 +3,12 @@
 //
 #include "Decoder.h"
 
-#include <condition_variable>
+#include <atomic>
 #include <fstream>
 #include <iostream>
-#include <mutex>
-#include <queue>
 #include <thread>
 
+#include "CircularBuffer.h"
 #include "Logger.h"
 #include "Itch/AddOrderMessage.h"
 #include "Itch/DecodeMessage.h"
@@ -22,6 +21,8 @@
 #include "Order.h"
 
 namespace {
+
+constexpr std::size_t kQueueCapacity = 1 << 16;
 
 void handle_message(const std::unique_ptr<itch::Message>& message, Book* book)
 {
@@ -95,11 +96,9 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
         return std::unexpected(std::string("decode_file: cannot open ") + input_path.string());
     }
 
-    std::mutex mtx;
-    std::condition_variable cv;
-    bool done = false;
+    std::atomic<bool> parsing_done = false;
     auto book = std::make_unique<Book>();
-    std::queue<std::unique_ptr<itch::Message>> q;
+    CircularBuffer<std::unique_ptr<itch::Message>, kQueueCapacity> queue;
 
     auto parse_function = [&] {
         while (true) {
@@ -121,35 +120,28 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
             }
 
             auto message = itch::decode_message(data);
-            {
-                std::lock_guard lock(mtx);
-                if (message != nullptr) {
-                    q.push(std::move(message));
-                }
+            if (message == nullptr) {
+                continue;
             }
-            cv.notify_one();
+            while (!queue.try_push(std::move(message))) {
+                std::this_thread::yield();
+            }
         }
 
-        {
-            std::lock_guard lock(mtx);
-            done = true;
-        }
-        cv.notify_all();
+        parsing_done.store(true, std::memory_order_release);
     };
 
     auto handle_function = [&] {
         while (true) {
-            std::unique_ptr<itch::Message> message;
-            {
-                std::unique_lock lock(mtx);
-                cv.wait(lock, [&] { return !q.empty() || done; });
-                if (q.empty() && done) {
+            if (auto message = queue.try_pop()) {
+                handle_message(*message, book.get());
+            } else if (parsing_done.load(std::memory_order_acquire)) {
+                if (queue.empty()) {
                     break;
                 }
-                message = std::move(q.front());
-                q.pop();
+            } else {
+                std::this_thread::yield();
             }
-            handle_message(message, book.get());
         }
     };
 

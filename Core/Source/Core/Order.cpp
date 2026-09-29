@@ -4,10 +4,10 @@
 
 
 Order::Order(uint64_t timestamp_ns,
-             uint16_t stock_locate,
+             InstrumentId stock_locate,
              uint64_t order_reference_number,
              char side,
-             uint32_t price,
+             Price price,
              uint32_t quantity)
     : timestamp_ns_(timestamp_ns)
     , stock_locate_(stock_locate)
@@ -17,7 +17,7 @@ Order::Order(uint64_t timestamp_ns,
 {
     if (side == 'B') {
         side_ = Side::BID;
-    } else if (side == 'S') {
+    } else if (side == 'S' || side == 'A') {
         side_ = Side::ASK;
     }
 }

@@ -64,3 +64,4 @@ Desktop.ini
 # --- Debug / crash dumps ---
 *.core
 *.dSYM/
+bench.trace/

@@ -8,8 +8,8 @@
 
 namespace {
 
-void erase_empty_level(std::map<uint32_t, Level, std::greater<>>& bid_levels,
-                       std::map<uint32_t, Level, std::less<>>& ask_levels,
+void erase_empty_level(std::map<Price, Level, std::greater<>>& bid_levels,
+                       std::map<Price, Level, std::less<>>& ask_levels,
                        const OrderIterator& handle)
 {
     if (!handle.level.orders.empty()) {
@@ -24,14 +24,14 @@ void erase_empty_level(std::map<uint32_t, Level, std::greater<>>& bid_levels,
 
 }  // namespace
 
-SecurityBook::SecurityBook(uint16_t stock_locate)
+SecurityBook::SecurityBook(InstrumentId stock_locate)
     : stock_locate_(stock_locate)
 {
 }
 
 void SecurityBook::insert(std::unique_ptr<Order>&& order)
 {
-    const uint32_t price = order->price();
+    const Price price = order->price();
     const uint64_t ref = order->order_reference_number();
     const Side side = order->side();
 
@@ -113,7 +113,7 @@ void SecurityBook::cancel_order(uint64_t order_reference_number, uint32_t cancel
 
 void SecurityBook::replace_order(uint64_t old_order_reference_number,
                          uint64_t new_order_reference_number,
-                         uint32_t new_price,
+                         Price new_price,
                          uint32_t new_shares)
 {
     auto map_it = order_mapping.find(old_order_reference_number);
@@ -124,7 +124,7 @@ void SecurityBook::replace_order(uint64_t old_order_reference_number,
     }
 
     std::unique_ptr<Order>::pointer old_order = map_it->second.it->get();
-    uint16_t temp_stock_locate = old_order->stock_locate();
+    const InstrumentId temp_stock_locate = old_order->stock_locate();
     const uint64_t timestamp_ns = old_order->timestamp_ns();
     const char side = (old_order->side() == Side::BID) ? 'B' : 'S';
 
@@ -136,4 +136,44 @@ void SecurityBook::replace_order(uint64_t old_order_reference_number,
                       side,
                       new_price,
                       new_shares));
+}
+
+void SecurityBook::modify_order(uint64_t order_reference_number, Price new_price, uint32_t new_shares)
+{
+    auto map_it = order_mapping.find(order_reference_number);
+    if (map_it == order_mapping.end()) {
+        std::cout << "Attempted to modify order " << order_reference_number
+                  << ", but it was no longer in the book" << std::endl;
+        return;
+    }
+
+    Order& order = **map_it->second.it;
+    const bool keeps_priority = new_price == order.price() && new_shares <= order.quantity();
+    if (keeps_priority && new_shares > 0) {
+        order.set_quantity(new_shares);
+        return;
+    }
+
+    const uint64_t timestamp_ns = order.timestamp_ns();
+    const InstrumentId stock_locate = order.stock_locate();
+    const char side = (order.side() == Side::BID) ? 'B' : 'S';
+
+    remove_order(order_reference_number);
+    if (new_shares == 0) {
+        return;
+    }
+
+    insert(std::make_unique<Order>(timestamp_ns,
+                                   stock_locate,
+                                   order_reference_number,
+                                   side,
+                                   new_price,
+                                   new_shares));
+}
+
+void SecurityBook::clear()
+{
+    order_mapping.clear();
+    bid_levels.clear();
+    ask_levels.clear();
 }

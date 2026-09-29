@@ -35,7 +35,7 @@ int main()
     uint32_t sequence = 42;
     std::memcpy(&data[52], &sequence, 4);
 
-    databento::AddOrderMessage msg;
+    mbo::AddOrderMessage msg;
     bool ok = msg.decode(data);
 
     std::cout << "decode() returned " << (ok ? "true" : "false") << "\n";
@@ -62,11 +62,11 @@ int main()
     std::cout << "channel_id: expected=7 got=" << static_cast<int>(msg.channel_id()) << "\n";
     assert(msg.channel_id() == 7);
 
-    std::cout << "action: expected=Add got_is_add=" << (msg.action() == databento::Action::Add) << "\n";
-    assert(msg.action() == databento::Action::Add);
+    std::cout << "action: expected=Add got_is_add=" << (msg.action() == mbo::Action::Add) << "\n";
+    assert(msg.action() == mbo::Action::Add);
 
-    std::cout << "side: expected=Bid got_is_bid=" << (msg.side() == databento::Side::Bid) << "\n";
-    assert(msg.side() == databento::Side::Bid);
+    std::cout << "side: expected=Bid got_is_bid=" << (msg.side() == mbo::Side::Bid) << "\n";
+    assert(msg.side() == mbo::Side::Bid);
 
     std::cout << "ts_recv: expected=" << ts_recv << " got=" << msg.ts_recv() << "\n";
     assert(msg.ts_recv() == ts_recv);

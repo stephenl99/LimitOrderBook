@@ -8,7 +8,7 @@
 #include "Databento/ModifyMessage.h"
 #include "Databento/TradeMessage.h"
 
-namespace databento {
+namespace mbo {
 
 std::unique_ptr<itch::Message> decode_message(const std::vector<uint8_t>& data)
 {
@@ -46,4 +46,4 @@ std::unique_ptr<itch::Message> decode_message(const std::vector<uint8_t>& data)
     return message;
 }
 
-}  // namespace databento
+}  // namespace mbo

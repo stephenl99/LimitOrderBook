@@ -1,6 +1,6 @@
 #include "Databento/MboMessage.h"
 
-namespace databento {
+namespace mbo {
 
 uint16_t MboMessage::read_u16_le(const std::vector<uint8_t>& data, size_t offset)
 {
@@ -72,4 +72,4 @@ bool MboMessage::decode(const std::vector<uint8_t>& data)
     return decode_mbo_body(data, static_cast<Action>(data[kAction]));
 }
 
-}  // namespace databento
+}  // namespace mbo

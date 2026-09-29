@@ -5,8 +5,8 @@
 
 #include "Itch/Message.h"
 
-namespace databento {
+namespace mbo {
 
 std::unique_ptr<itch::Message> decode_message(const std::vector<uint8_t>& data);
 
-}  // namespace databento
+}  // namespace mbo

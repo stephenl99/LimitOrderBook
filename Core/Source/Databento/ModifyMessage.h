@@ -2,11 +2,11 @@
 
 #include "Databento/MboMessage.h"
 
-namespace databento {
+namespace mbo {
 
 class ModifyMessage : public MboMessage {
 public:
     bool decode(const std::vector<uint8_t>& data) override;
 };
 
-}  // namespace databento
+}  // namespace mbo

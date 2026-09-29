@@ -6,7 +6,7 @@
 
 #include "Itch/Message.h"
 
-namespace databento {
+namespace mbo {
 
 enum class Action : char {
     Modify = 'M',
@@ -80,4 +80,4 @@ protected:
     uint32_t sequence_{};
 };
 
-}  // namespace databento
+}  // namespace mbo

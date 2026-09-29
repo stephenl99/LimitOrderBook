@@ -1,9 +1,9 @@
 #include "Databento/HandleMessage.h"
 
-#include "Core/Logger.h"
+#include "Core/Order.h"
 #include "Databento/MboMessage.h"
 
-namespace databento {
+namespace mbo {
 
 void handle_message(const std::unique_ptr<itch::Message>& message, Book* book)
 {
@@ -18,25 +18,28 @@ void handle_message(const std::unique_ptr<itch::Message>& message, Book* book)
 
     switch (mbo->action()) {
     case Action::Add:
-        Logger::debug("databento::handle_message: Add not yet wired to SecurityBook");
-        break;
-    case Action::Fill:
-        Logger::debug("databento::handle_message: Fill not yet wired to SecurityBook");
+        book->book_for(mbo->instrument_id())
+            .insert(std::make_unique<Order>(mbo->timestamp_ns(),
+                                            mbo->instrument_id(),
+                                            mbo->order_id(),
+                                            static_cast<char>(mbo->side()),
+                                            mbo->raw_price(),
+                                            mbo->size()));
         break;
     case Action::Cancel:
-        Logger::debug("databento::handle_message: Cancel not yet wired to SecurityBook");
+        book->book_for(mbo->instrument_id()).cancel_order(mbo->order_id(), mbo->size());
         break;
     case Action::Modify:
-        Logger::debug("databento::handle_message: Modify not yet wired to SecurityBook");
+        book->book_for(mbo->instrument_id()).modify_order(mbo->order_id(), mbo->raw_price(), mbo->size());
         break;
     case Action::Clear:
-        Logger::debug("databento::handle_message: Clear not yet wired to SecurityBook");
+        book->book_for(mbo->instrument_id()).clear();
         break;
+    case Action::Fill:
     case Action::Trade:
-        break;
     case Action::None:
         break;
     }
 }
 
-}  // namespace databento
+}  // namespace mbo

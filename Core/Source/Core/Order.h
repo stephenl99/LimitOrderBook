@@ -2,6 +2,9 @@
 
 #include <cstdint>
 
+using Price = int64_t;
+using InstrumentId = uint32_t;
+
 enum class Side {
     BID,
     ASK,
@@ -13,7 +16,7 @@ public:
         timestamp_ns_ = timestamp_ns;
     }
 
-    void set_stock_locate(uint16_t stock_locate) {
+    void set_stock_locate(InstrumentId stock_locate) {
         stock_locate_ = stock_locate;
     }
 
@@ -25,7 +28,7 @@ public:
         side_ = side;
     }
 
-    void set_price(uint32_t price) {
+    void set_price(Price price) {
         price_ = price;
     }
 
@@ -34,10 +37,10 @@ public:
     }
 
     Order(uint64_t timestamp_ns,
-          uint16_t stock_locate,
+          InstrumentId stock_locate,
           uint64_t order_reference_number,
           char side,
-          uint32_t price,
+          Price price,
           uint32_t quantity);
 
     Order(Order&& other) noexcept;
@@ -45,19 +48,19 @@ public:
     Order(const Order& other);
 
     [[nodiscard]] uint64_t timestamp_ns() const { return timestamp_ns_; }
-    [[nodiscard]] uint16_t stock_locate() const { return stock_locate_; }
+    [[nodiscard]] InstrumentId stock_locate() const { return stock_locate_; }
     [[nodiscard]] uint64_t order_reference_number() const { return order_reference_number_; }
     [[nodiscard]] Side side() const { return side_; }
-    [[nodiscard]] uint32_t price() const { return price_; }
+    [[nodiscard]] Price price() const { return price_; }
     [[nodiscard]] uint32_t quantity() const { return quantity_; }
 
     bool operator<(const Order& other) const;
 
 private:
     uint64_t timestamp_ns_;
-    uint16_t stock_locate_;
+    InstrumentId stock_locate_;
     uint64_t order_reference_number_;
     Side side_;
-    uint32_t price_;
+    Price price_;
     uint32_t quantity_;
 };
