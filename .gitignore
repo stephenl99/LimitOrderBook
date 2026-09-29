@@ -3,6 +3,9 @@ build-make/
 build-make-release/
 compile_commands.json
 
+# --- Vendored databento-cpp (cloned + built locally, see Makefile) ---
+vendor/
+
 # --- Compiled artifacts (if they leak outside build/) ---
 *.o
 *.obj

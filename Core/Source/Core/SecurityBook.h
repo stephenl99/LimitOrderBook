@@ -90,8 +90,6 @@ std::vector<LevelSummary> depth_snapshot(const Levels& levels, std::size_t depth
     return result;
 }
 
-// Volume-weighted average price across the top `depth` levels of a side.
-// Returns 0.0 if the side is empty.
 struct SumCountPair {
     double sum;
     int count;
@@ -118,7 +116,6 @@ double vwap(const Levels& levels, std::size_t depth)
     return weighted_sum / total;
 }
 
-// Best (nearest-to-market) price on a side, or nullopt if the side is empty.
 template <LevelMap Levels>
 std::optional<uint32_t> best_price(const Levels& levels)
 {
@@ -128,7 +125,6 @@ std::optional<uint32_t> best_price(const Levels& levels)
     return levels.begin()->first;
 }
 
-// All price levels within `cents` of the best price on a side.
 template <LevelMap Levels>
 std::vector<LevelSummary> levels_within_cents(const Levels& levels, uint32_t cents)
 {

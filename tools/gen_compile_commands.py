@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Regenerate compile_commands.json for clangd/IDE tooling.
-
-No bear needed: every translation unit in the Makefile build uses the same
-flags, so this is just a JSON dump of (source file, fixed command) pairs.
-"""
 import json
 import os
 import subprocess

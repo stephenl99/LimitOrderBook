@@ -124,13 +124,14 @@ void SecurityBook::replace_order(uint64_t old_order_reference_number,
     }
 
     std::unique_ptr<Order>::pointer old_order = map_it->second.it->get();
+    uint16_t temp_stock_locate = old_order->stock_locate();
     const uint64_t timestamp_ns = old_order->timestamp_ns();
     const char side = (old_order->side() == Side::BID) ? 'B' : 'S';
 
     remove_order(old_order_reference_number);
 
     insert(std::make_unique<Order>(timestamp_ns,
-                      old_order->stock_locate(),
+                      temp_stock_locate,
                       new_order_reference_number,
                       side,
                       new_price,
