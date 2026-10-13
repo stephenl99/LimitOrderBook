@@ -10,13 +10,13 @@ namespace itch {
 
 class CrossTradeMessage : public Message {
 public:
-    bool decode(const std::vector<uint8_t>& data) override;
+    bool decode(std::span<const uint8_t> data) override;
 
-    [[nodiscard]] uint32_t shares() const { return shares_; }
-    [[nodiscard]] const char* stock() const { return stock_.data(); }
-    [[nodiscard]] uint32_t cross_price() const { return cross_price_; }
-    [[nodiscard]] uint64_t match_number() const { return match_number_; }
-    [[nodiscard]] char cross_type() const { return cross_type_; }
+    uint32_t shares() const { return shares_; }
+    const char* stock() const { return stock_.data(); }
+    uint32_t cross_price() const { return cross_price_; }
+    uint64_t match_number() const { return match_number_; }
+    char cross_type() const { return cross_type_; }
 
     static constexpr size_t kPayloadSize = 40;
     static constexpr size_t kShares = 11;  // Q-specific (not Offsets::kShares / not order-ref)

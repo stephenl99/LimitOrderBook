@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "Message/Databento/AddOrderMessage.h"
+#include "Message/Databento/MboMessage.h"
 
 int main()
 {
@@ -35,7 +35,7 @@ int main()
     uint32_t sequence = 42;
     std::memcpy(&data[52], &sequence, 4);
 
-    mbo::AddOrderMessage msg;
+    mbo::MboMessage msg;
     bool ok = msg.decode(data);
 
     std::cout << "decode() returned " << (ok ? "true" : "false") << "\n";

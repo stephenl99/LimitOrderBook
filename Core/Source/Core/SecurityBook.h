@@ -8,6 +8,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <memory_resource>
 #include <numeric>
 #include <optional>
 #include <ranges>
@@ -19,23 +20,25 @@
 
 struct OrderIterator {
     Level& level;
-    std::list<std::unique_ptr<Order>>::iterator it;
+    OrderList::iterator it;
     Price price;
     Side side;
-    OrderIterator(Level& level, const std::list<std::unique_ptr<Order>>::iterator it,
+    OrderIterator(Level& level, const OrderList::iterator it,
         const Price price, const Side side) : level(level), it(it), price(price), side(side) {}
 };
 
 class SecurityBook {
+    std::pmr::unsynchronized_pool_resource pool_;
+
 public:
     explicit SecurityBook(InstrumentId stock_locate = 0);
 
-    [[nodiscard]] InstrumentId stock_locate() const { return stock_locate_; }
+    InstrumentId stock_locate() const { return stock_locate_; }
 
     std::map<Price, Level, std::greater<>> bid_levels;
     std::map<Price, Level, std::less<>> ask_levels;
-    std::unordered_map<uint64_t, OrderIterator> order_mapping;
-    void insert(std::unique_ptr<Order> &&order);
+    std::pmr::unordered_map<uint64_t, OrderIterator> order_mapping{&pool_};
+    void insert(const Order& order);
 
     void delete_order(uint64_t order_reference_number);
 
@@ -53,6 +56,7 @@ public:
     void clear();
 
 private:
+    Level& level_for(Side side, Price price);
     void remove_order(uint64_t order_reference_number);
     void reduce_order_quantity(uint64_t order_reference_number,
                                uint32_t shares,
@@ -78,7 +82,7 @@ std::vector<LevelSummary> depth_snapshot(const Levels& levels, std::size_t depth
     auto summarize = [](const auto& entry) {
         const auto& [price, level] = entry;
         auto shares = level.orders
-            | std::views::transform([](const auto& order) { return order->quantity(); });
+            | std::views::transform([](const auto& order) { return order.quantity(); });
         const uint32_t total_shares = std::accumulate(shares.begin(), shares.end(), 0u);
         return LevelSummary{price, total_shares};
     };
@@ -145,7 +149,7 @@ std::vector<LevelSummary> levels_within_cents(const Levels& levels, Price cents)
     std::vector<LevelSummary> result;
     for (const auto& [price, level] : near_best) {
         auto shares = level.orders
-            | std::views::transform([](const auto& order) { return order->quantity(); });
+            | std::views::transform([](const auto& order) { return order.quantity(); });
         const uint32_t total_shares = std::accumulate(shares.begin(), shares.end(), 0u);
         result.push_back(LevelSummary{price, total_shares});
     }

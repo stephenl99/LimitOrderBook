@@ -4,13 +4,14 @@
 #include "Decoder.h"
 
 #include <atomic>
-#include <fstream>
 #include <iostream>
 #include <thread>
 
 #include "CircularBuffer.h"
 #include "Logger.h"
+#include "MappedFile.h"
 #include "Message/Itch/DecodeMessage.h"
+#include "Message/Itch/FrameReader.h"
 #include "Message/Itch/HandleMessage.h"
 
 namespace {
@@ -21,9 +22,9 @@ constexpr std::size_t kQueueCapacity = 1 << 16;
 
 std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs::path& input_path)
 {
-    std::ifstream input_stream(input_path, std::ios::binary);
-    if (!input_stream) {
-        return std::unexpected(std::string("decode_file: cannot open ") + input_path.string());
+    const auto file = MappedFile::open(input_path);
+    if (!file) {
+        return std::unexpected("decode_file: " + file.error());
     }
 
     std::atomic<bool> parsing_done = false;
@@ -31,25 +32,9 @@ std::expected<std::unique_ptr<Book>, std::string> Decoder::decode_file(const fs:
     CircularBuffer<std::unique_ptr<itch::Message>, kQueueCapacity> queue;
 
     auto parse_function = [&] {
-        while (true) {
-            uint8_t len_buf[2]{};
-            input_stream.read(reinterpret_cast<char*>(len_buf), 2);
-            if (input_stream.gcount() != 2) {
-                break;
-            }
-
-            const auto len = static_cast<uint16_t>((len_buf[0] << 8) | len_buf[1]);
-            if (len == 0) {
-                break;
-            }
-
-            std::vector<uint8_t> data(len);
-            input_stream.read(reinterpret_cast<char*>(data.data()), len);
-            if (input_stream.gcount() != static_cast<std::streamsize>(len)) {
-                break;
-            }
-
-            auto message = itch::decode_message(data);
+        itch::FrameReader frames(file->bytes());
+        while (const auto frame = frames.next()) {
+            auto message = itch::decode_message(*frame);
             if (message == nullptr) {
                 continue;
             }

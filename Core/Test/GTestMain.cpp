@@ -46,7 +46,7 @@ std::optional<uint32_t> resting_quantity(const SecurityBook& book, uint64_t orde
     if (it == book.order_mapping.end()) {
         return std::nullopt;
     }
-    return it->second.it->get()->quantity();
+    return it->second.it->quantity();
 }
 
 std::optional<uint32_t> level_price_for(const SecurityBook& book, uint64_t order_reference_number)
@@ -81,7 +81,7 @@ std::optional<SecurityBook*> find_security_book(const Book& books, uint16_t stoc
 
 void insert_order(SecurityBook& book, Order order)
 {
-    book.insert(std::make_unique<Order>(std::move(order)));
+    book.insert(order);
 }
 
 }  // namespace
@@ -202,8 +202,8 @@ TEST(Book, InsertAddCreatesBidLevel)
     EXPECT_EQ(book.bid_levels.size(), 1u);
     EXPECT_EQ(book.ask_levels.size(), 0u);
     ASSERT_FALSE(book.bid_levels.begin()->second.orders.empty());
-    EXPECT_EQ(book.bid_levels.begin()->second.orders.front()->order_reference_number(), 12345u);
-    EXPECT_EQ(book.bid_levels.begin()->second.orders.front()->stock_locate(), 1u);
+    EXPECT_EQ(book.bid_levels.begin()->second.orders.front().order_reference_number(), 12345u);
+    EXPECT_EQ(book.bid_levels.begin()->second.orders.front().stock_locate(), 1u);
     EXPECT_EQ(resting_quantity(book, 12345), 100u);
 }
 

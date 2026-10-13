@@ -2,7 +2,7 @@
 
 namespace itch {
 
-bool Message::decode_header(const std::vector<uint8_t>& data, size_t min_size, char expected_type)
+bool Message::decode_header(std::span<const uint8_t> data, size_t min_size, char expected_type)
 {
     if (data.size() < min_size || data[Offsets::kMessageType] != expected_type) {
         return false;
@@ -14,25 +14,25 @@ bool Message::decode_header(const std::vector<uint8_t>& data, size_t min_size, c
     return true;
 }
 
-uint16_t Message::read_u16(const std::vector<uint8_t>& data, size_t offset)
+uint16_t Message::read_u16(std::span<const uint8_t> data, size_t offset)
 {
     return Helpers::convert<uint16_t, uint8_t>(
         const_cast<uint8_t*>(data.data() + offset), 2);
 }
 
-uint32_t Message::read_u32(const std::vector<uint8_t>& data, size_t offset)
+uint32_t Message::read_u32(std::span<const uint8_t> data, size_t offset)
 {
     return Helpers::convert<uint32_t, uint8_t>(
         const_cast<uint8_t*>(data.data() + offset), 4);
 }
 
-uint64_t Message::read_u64(const std::vector<uint8_t>& data, size_t offset)
+uint64_t Message::read_u64(std::span<const uint8_t> data, size_t offset)
 {
     return Helpers::convert<uint64_t, uint8_t>(
         const_cast<uint8_t*>(data.data() + offset), 8);
 }
 
-uint64_t Message::read_timestamp_ns(const std::vector<uint8_t>& data, size_t offset)
+uint64_t Message::read_timestamp_ns(std::span<const uint8_t> data, size_t offset)
 {
     return Helpers::convert<uint64_t, uint8_t>(
         const_cast<uint8_t*>(data.data() + offset), 6);

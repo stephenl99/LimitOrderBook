@@ -4,7 +4,7 @@
 
 namespace itch {
 
-bool AddOrderMessage::decode_add_body(const std::vector<uint8_t>& data,
+bool AddOrderMessage::decode_add_body(std::span<const uint8_t> data,
                                       char expected_type, size_t min_size)
 {
     if (!decode_header(data, min_size, expected_type)) {
@@ -18,7 +18,7 @@ bool AddOrderMessage::decode_add_body(const std::vector<uint8_t>& data,
     return true;
 }
 
-bool AddOrderMessage::decode(const std::vector<uint8_t>& data)
+bool AddOrderMessage::decode(std::span<const uint8_t> data)
 {
     return decode_add_body(data, 'A', kPayloadSize);
 }

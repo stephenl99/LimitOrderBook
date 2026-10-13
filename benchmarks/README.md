@@ -7,7 +7,7 @@ Comparing ways to hand messages from the parser thread to the handler thread:
 - **ring, spin when idle** — same ring, CPU pause instruction instead of `yield()`.
 - **single thread** — no queue at all (`Core/Source/Baseline/SingleThreadDecoder.cpp`). Only in the decode test.
 
-Framing, `itch::decode_message`, `itch::handle_message` and the book are shared, so the handoff is the only difference.
+File mapping, framing, `itch::decode_message`, `itch::handle_message` and the book are shared, so the handoff is the only difference.
 
 M2 Max, macOS 14.6.1, Apple clang 16, `-O2`. Order of variants rotates every run. Benchmark-owned threads run at
 `QOS_CLASS_USER_INTERACTIVE` (new threads get the default class otherwise and can land on efficiency cores).
@@ -18,6 +18,35 @@ make queue_report
 
 regenerates fixtures, reruns everything and redraws the plots. Takes about 3 minutes.
 
+## Full decode
+
+| messages | single thread | mutex | ring, yield |
+|---|---|---|---|
+| 15k | 11.02 M/s | 5.70 | 7.60 |
+| 150k | 10.89 M/s | 5.75 | 7.54 |
+| 1.5M | 10.06 M/s | 5.36 | 6.90 |
+
+![decode throughput](decode_throughput.png)
+
+The ring is ~30% ahead of the mutex end to end. It wasn't always: the first version of this table had all three
+around 4 M/s and the ring within noise of the mutex, because every message was paying for things that had nothing to
+do with the queue. Three changes moved it (150k / 1.5M messages, alternating runs against the previous binary):
+
+| change | single | mutex | ring |
+|---|---|---|---|
+| mmap the file, decode from spans (was: `ifstream` + a `std::vector` per frame) | +59% / +35% | +42% / +14% | +49% / +15% |
+| `Order` stored by value in the level list (was: `unique_ptr<Order>` in the list) | +10% / +62% | -1% / +22% | +10% / +40% |
+| list and order-index nodes from a per-book `pmr` pool | +16% / +18% | +7% / +11% | +2% / +12% |
+| all three | 2.0x / 2.6x | +53% / +55% | +66% / +82% |
+
+Once the per-message cost dropped from ~250 ns to ~140 ns (ring) the handoff became a big enough share of it to see.
+
+One thread is still the fastest way to replay a file, by a lot. The two-thread versions allocate each message on the
+parser thread and free it on the handler thread, and add a handoff, and parse + apply are both short. The pipeline is
+for a live feed where the network read can't wait on the book; there the number that matters is latency, below.
+
+All three decoders produce the same book on the 1.5M file (same resting orders and depth per level on all 8 locates).
+
 ## Handoff latency
 
 Producer sends at a fixed rate, stamps each item with its scheduled send time, consumer records `now - stamp`.
@@ -25,24 +54,24 @@ Producer sends at a fixed rate, stamps each item with its scheduled send time, c
 
 | rate | variant | p50 | p99 | p99.9 |
 |---|---|---|---|---|
-| 10k/s | mutex | 5.96 µs | 18.8 µs | 648 µs |
-| | ring, yield | 167 ns | 8.6 µs | 604 µs |
-| | ring, spin | 84 ns | 3.2 µs | 11.6 µs |
-| 100k/s | mutex | 5.96 µs | 9.9 µs | 26.4 µs |
-| | ring, yield | 167 ns | 5.4 µs | 85.5 µs |
-| | ring, spin | 84 ns | 3.1 µs | 34.7 µs |
-| 1M/s | mutex | 1.54 µs | 10.7 µs | 43.0 µs |
-| | ring, yield | 167 ns | 4.8 µs | 21.2 µs |
-| | ring, spin | 83 ns | 2.8 µs | 9.0 µs |
+| 10k/s | mutex | 5.79 µs | 16.7 µs | 1.2 ms |
+| | ring, yield | 167 ns | 3.6 µs | 12.3 µs |
+| | ring, spin | 84 ns | 3.2 µs | 8.8 µs |
+| 100k/s | mutex | 5.88 µs | 9.4 µs | 18.2 µs |
+| | ring, yield | 166 ns | 3.2 µs | 12.4 µs |
+| | ring, spin | 83 ns | 1.4 µs | 8.9 µs |
+| 1M/s | mutex | 1.54 µs | 9.8 µs | 22.8 µs |
+| | ring, yield | 167 ns | 3.3 µs | 12.5 µs |
+| | ring, spin | 83 ns | 2.6 µs | 9.0 µs |
 
 ![handoff latency](handoff_latency.png)
 
-This is where the ring wins. With the mutex the consumer is asleep on the condition variable most of the time and
-every message pays a wakeup, ~6 µs. The ring's consumer is already running, so the median is 35x (yield) to 70x (spin)
-lower. At 1M/s the mutex median drops to 1.5 µs because the consumer rarely gets a chance to go to sleep.
+With the mutex the consumer is asleep on the condition variable most of the time and every message pays a wakeup,
+~6 µs. The ring's consumer is already running, so the median is 35x (yield) to 70x (spin) lower. At 1M/s the mutex
+median drops to 1.5 µs because the consumer rarely gets a chance to go to sleep.
 
-p99.9 is mostly the OS, not the queue — the bands overlap and one preempted run moves it by 10x. I wouldn't claim
-anything from that column except that spinning is the most stable.
+p99.9 moves a lot between sessions (an earlier run had yield at 600 µs at 10k/s). It's mostly the OS. The medians and
+p99s have been stable across runs.
 
 Clock resolution here is ~42 ns (mach ticks), so 83 and 167 are 2 and 4 ticks.
 
@@ -52,47 +81,41 @@ Clock resolution here is ~42 ns (mach ticks), so 83 and 167 are 2 and 4 ticks.
 
 | variant | median |
 |---|---|
-| mutex | 21.8 M/s |
-| ring, yield | 36.5 M/s (27–47 across runs) |
-| ring, spin | 22.0 M/s |
+| mutex | 21.3 M/s |
+| ring, yield | 42.2 M/s |
+| ring, spin | 25.2 M/s |
 
 ![queue handoff](queue_handoff.png)
 
-Yield is 1.7x the mutex but noisy. Spin is no faster than the mutex here, which surprised me: the side that's waiting
-keeps reloading the other side's counter in a tight loop, so the two cores fight over that cache line. Yielding backs
-off and lets the other side run. So the idle strategy is a real tradeoff: spin for latency, yield for throughput.
-Caching the other side's counter locally should fix most of it (not done yet).
+Yield is 2x the mutex. Spin is barely faster than the mutex, which surprised me: the side that's waiting keeps
+reloading the other side's counter in a tight loop, so the two cores fight over that cache line. Yielding backs off and
+lets the other side run. So the idle strategy is a real tradeoff: spin for latency, yield for throughput. Caching the
+other side's counter locally should fix most of it (not done yet).
 
-## Full decode
+## Real data
 
-| messages | single thread | mutex | ring, yield |
-|---|---|---|---|
-| 15k | 6.09 M/s | 3.98 | 4.11 |
-| 150k | 5.85 M/s | 4.37 | 4.68 |
-| 1.5M | 4.11 M/s | 3.95 | 3.67 |
+One hour of CME ESZ6 MBO from Databento (163,149 records), replayed single-threaded with `make replay`, zstd
+decompression included:
 
-![decode throughput](decode_throughput.png)
+| | median |
+|---|---|
+| six message subclasses on the heap, bytes copied into a vector | 4.43 M/s |
+| one message class by value | 5.72 M/s |
+| decoded from a span, no copy | 6.42 M/s |
+| `Order` by value in the list | 7.70 M/s |
+| pooled list and index nodes | 9.96 M/s |
 
-Two things:
-
-1. Mutex vs ring barely matters. At ~4M msgs/s a message costs ~250 ns and the handoff is a small part of it.
-2. One thread beats both two-thread versions on file replay, by ~40% on the smaller files. Every message is allocated
-   on the parser thread and freed on the handler thread, plus the handoff, and that costs more than running parse and
-   apply in parallel saves. At 1.5M messages the book (1M resting orders) dominates and all three converge.
-
-So for replaying a file the pipeline is the wrong shape. It's the right shape for a live feed, where the network read
-can't wait on the book, and there the number that matters is the latency table above.
-
-All three decoders produce the same book on the 1.5M file (same resting orders and depth per level
-on all 8 locates).
+Each step measured against the one before in alternating runs. The book printed after every one of the 134,206
+completed events is identical at every step.
 
 ## Fixtures
 
-`gen_big_mix.py --locates 8 --mutate-every 4`: adds over 8 symbols with an execute + cancel every 4th add. Synthetic.
-Still need to run this on a real NASDAQ sample.
+ITCH: `gen_big_mix.py --locates 8 --mutate-every 4`, adds over 8 symbols with an execute + cancel every 4th add.
+Synthetic. Still need a real NASDAQ sample.
 
 ## Next
 
+- messages by value in the ring (a `variant`) instead of `unique_ptr<Message>` — the last per-message allocation on the ITCH path, and the one that crosses threads
 - cache the opposite counter in the ring, rerun spin vs yield
-- stop allocating per message (decode from a span, messages by value in the ring, pooled orders), then rerun decode
-- real data
+- flat price levels near the top of book instead of `std::map`
+- real NASDAQ data

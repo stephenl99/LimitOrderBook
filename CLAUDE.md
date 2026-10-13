@@ -1,6 +1,6 @@
 # LimitOrderBook
 
-C++23 limit order book. ITCH file replay + a Databento live-feed integration in progress. Build via `make` (see `Makefile`); meson was dropped.
+C++23 limit order book. ITCH file replay + a Databento live-feed integration in progress. CMake is the build (`CMakeLists.txt`, presets `debug`, `release`, `asan`, `tsan` in `CMakePresets.json`, output in `build-cmake/<preset>/`). The `Makefile` is a thin wrapper over it plus the benchmark, plot and replay workflows: `make`, `make test`, `make queue_report`, `make replay`. Meson was dropped.
 
 ## Code style
 

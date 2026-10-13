@@ -15,7 +15,7 @@
 
 namespace itch {
 
-std::unique_ptr<Message> decode_message(const std::vector<uint8_t>& data)
+std::unique_ptr<Message> decode_message(std::span<const uint8_t> data)
 {
     if (data.empty()) {
         return nullptr;

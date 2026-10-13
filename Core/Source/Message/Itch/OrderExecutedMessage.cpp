@@ -2,7 +2,7 @@
 
 namespace itch {
 
-bool OrderExecutedMessage::decode(const std::vector<uint8_t>& data)
+bool OrderExecutedMessage::decode(std::span<const uint8_t> data)
 {
     if (!decode_header(data, kPayloadSize, 'E')) {
         return false;

@@ -4,7 +4,7 @@
 
 namespace itch {
 
-bool AddOrderMpidMessage::decode(const std::vector<uint8_t>& data)
+bool AddOrderMpidMessage::decode(std::span<const uint8_t> data)
 {
     if (!decode_add_body(data, 'F', kPayloadSize)) {
         return false;

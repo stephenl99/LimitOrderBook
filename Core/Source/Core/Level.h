@@ -1,9 +1,15 @@
 #pragma once
 
 #include <list>
+#include <memory_resource>
 
 #include "Order.h"
+
+using OrderList = std::pmr::list<Order>;
+
 class Level {
 public:
-    std::list<std::unique_ptr<Order>> orders;
+    explicit Level(std::pmr::memory_resource* memory) : orders(memory) {}
+
+    OrderList orders;
 };

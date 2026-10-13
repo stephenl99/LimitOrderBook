@@ -1,16 +1,16 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
+#include <span>
 
 class MarketMessage {
 public:
     virtual ~MarketMessage() = default;
 
-    virtual bool decode(const std::vector<uint8_t>& data) = 0;
+    virtual bool decode(std::span<const uint8_t> data) = 0;
 
-    [[nodiscard]] char message_type() const { return message_type_; }
-    [[nodiscard]] uint64_t timestamp_ns() const { return timestamp_ns_; }
+    char message_type() const { return message_type_; }
+    uint64_t timestamp_ns() const { return timestamp_ns_; }
 
 protected:
     char message_type_{};

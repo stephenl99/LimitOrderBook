@@ -12,4 +12,4 @@ if [[ ! -f "$FIXTURE" ]]; then
   python3 testdata/gen_big_mix.py --out "$FIXTURE"
 fi
 
-exec ./build-make-release/bin/bench "$REPEATS" "$FIXTURE"
+exec ./build-cmake/release/bench "$REPEATS" "$FIXTURE"

@@ -29,22 +29,23 @@ SecurityBook::SecurityBook(InstrumentId stock_locate)
 {
 }
 
-void SecurityBook::insert(std::unique_ptr<Order>&& order)
+Level& SecurityBook::level_for(Side side, Price price)
 {
-    const Price price = order->price();
-    const uint64_t ref = order->order_reference_number();
-    const Side side = order->side();
-
     if (side == Side::ASK) {
-        auto& level = ask_levels[price];
-        const auto it = level.orders.insert(level.orders.end(), std::move(order));
-        order_mapping.emplace(ref,
-                              OrderIterator(level, it, price, side));
-    } else {
-        auto& level = bid_levels[price];
-        const auto it = level.orders.insert(level.orders.end(), std::move(order));
-        order_mapping.emplace(ref, OrderIterator(level, it, price, side));
+        return ask_levels.try_emplace(price, &pool_).first->second;
     }
+    return bid_levels.try_emplace(price, &pool_).first->second;
+}
+
+void SecurityBook::insert(const Order& order)
+{
+    const Price price = order.price();
+    const uint64_t ref = order.order_reference_number();
+    const Side side = order.side();
+
+    Level& level = level_for(side, price);
+    const auto it = level.orders.insert(level.orders.end(), order);
+    order_mapping.emplace(ref, OrderIterator(level, it, price, side));
 }
 
 void SecurityBook::remove_order(uint64_t order_reference_number)
@@ -82,7 +83,7 @@ void SecurityBook::reduce_order_quantity(uint64_t order_reference_number,
     }
 
     auto& handle = map_it->second;
-    const uint32_t quantity_remaining = handle.it->get()->quantity();
+    const uint32_t quantity_remaining = handle.it->quantity();
 
     if (shares > quantity_remaining) {
         std::cout << "Attempted to " << action << " " << shares << " shares of order "
@@ -98,7 +99,7 @@ void SecurityBook::reduce_order_quantity(uint64_t order_reference_number,
         return;
     }
 
-    handle.it->get()->set_quantity(new_quantity);
+    handle.it->set_quantity(new_quantity);
 }
 
 void SecurityBook::execute_order(uint64_t order_reference_number, uint32_t executed_shares)
@@ -123,19 +124,19 @@ void SecurityBook::replace_order(uint64_t old_order_reference_number,
         return;
     }
 
-    std::unique_ptr<Order>::pointer old_order = map_it->second.it->get();
-    const InstrumentId temp_stock_locate = old_order->stock_locate();
-    const uint64_t timestamp_ns = old_order->timestamp_ns();
-    const char side = (old_order->side() == Side::BID) ? 'B' : 'S';
+    const Order& old_order = *map_it->second.it;
+    const InstrumentId temp_stock_locate = old_order.stock_locate();
+    const uint64_t timestamp_ns = old_order.timestamp_ns();
+    const char side = (old_order.side() == Side::BID) ? 'B' : 'S';
 
     remove_order(old_order_reference_number);
 
-    insert(std::make_unique<Order>(timestamp_ns,
-                      temp_stock_locate,
-                      new_order_reference_number,
-                      side,
-                      new_price,
-                      new_shares));
+    insert(Order(timestamp_ns,
+                 temp_stock_locate,
+                 new_order_reference_number,
+                 side,
+                 new_price,
+                 new_shares));
 }
 
 void SecurityBook::modify_order(uint64_t order_reference_number, Price new_price, uint32_t new_shares)
@@ -147,7 +148,7 @@ void SecurityBook::modify_order(uint64_t order_reference_number, Price new_price
         return;
     }
 
-    Order& order = **map_it->second.it;
+    Order& order = *map_it->second.it;
     const bool keeps_priority = new_price == order.price() && new_shares <= order.quantity();
     if (keeps_priority && new_shares > 0) {
         order.set_quantity(new_shares);
@@ -163,12 +164,12 @@ void SecurityBook::modify_order(uint64_t order_reference_number, Price new_price
         return;
     }
 
-    insert(std::make_unique<Order>(timestamp_ns,
-                                   stock_locate,
-                                   order_reference_number,
-                                   side,
-                                   new_price,
-                                   new_shares));
+    insert(Order(timestamp_ns,
+                 stock_locate,
+                 order_reference_number,
+                 side,
+                 new_price,
+                 new_shares));
 }
 
 void SecurityBook::clear()

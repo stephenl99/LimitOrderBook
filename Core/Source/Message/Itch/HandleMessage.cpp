@@ -29,12 +29,12 @@ void handle_message(const std::unique_ptr<Message>& message, Book* book)
     case 'A':
     case 'F': {
         const auto& add = dynamic_cast<const AddOrderMessage&>(*message);
-        security_book.insert(std::make_unique<Order>(add.timestamp_ns(),
-                                                     stock_locate,
-                                                     add.order_reference_number(),
-                                                     add.side(),
-                                                     add.price(),
-                                                     add.shares()));
+        security_book.insert(Order(add.timestamp_ns(),
+                                   stock_locate,
+                                   add.order_reference_number(),
+                                   add.side(),
+                                   add.price(),
+                                   add.shares()));
         break;
     }
     case 'P':

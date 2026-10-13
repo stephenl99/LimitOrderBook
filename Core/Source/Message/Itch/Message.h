@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <vector>
+#include <span>
 
 #include "Core/Helpers.h"
 #include "Message/MarketMessage.h"
@@ -25,17 +25,17 @@ struct Offsets {
 
 class Message : public MarketMessage {
 public:
-    [[nodiscard]] uint16_t stock_locate() const { return stock_locate_; }
-    [[nodiscard]] uint16_t tracking_number() const { return tracking_number_; }
+    uint16_t stock_locate() const { return stock_locate_; }
+    uint16_t tracking_number() const { return tracking_number_; }
 
 protected:
     // Every message shares the leading header through timestamp.
-    bool decode_header(const std::vector<uint8_t>& data, size_t min_size, char expected_type);
+    bool decode_header(std::span<const uint8_t> data, size_t min_size, char expected_type);
 
-    static uint16_t read_u16(const std::vector<uint8_t>& data, size_t offset);
-    static uint32_t read_u32(const std::vector<uint8_t>& data, size_t offset);
-    static uint64_t read_u64(const std::vector<uint8_t>& data, size_t offset);
-    static uint64_t read_timestamp_ns(const std::vector<uint8_t>& data, size_t offset);
+    static uint16_t read_u16(std::span<const uint8_t> data, size_t offset);
+    static uint32_t read_u32(std::span<const uint8_t> data, size_t offset);
+    static uint64_t read_u64(std::span<const uint8_t> data, size_t offset);
+    static uint64_t read_timestamp_ns(std::span<const uint8_t> data, size_t offset);
 
     uint16_t stock_locate_{};
     uint16_t tracking_number_{};

@@ -23,7 +23,7 @@ enum class Level {
 };
 
 void set_min_level(Level level);
-[[nodiscard]] Level min_level();
+Level min_level();
 
 void set_output_stream(std::ostream& stream);
 

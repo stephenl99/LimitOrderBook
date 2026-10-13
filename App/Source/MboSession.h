@@ -7,11 +7,10 @@
 #include <iomanip>
 #include <iostream>
 #include <ostream>
+#include <span>
 #include <string>
-#include <vector>
 
 #include "Core/Book.h"
-#include "Message/Databento/DecodeMessage.h"
 #include "Message/Databento/HandleMessage.h"
 
 class MboSession {
@@ -48,9 +47,10 @@ public:
         }
         count(*mbo);
 
-        const auto* bytes = reinterpret_cast<const uint8_t*>(mbo);
-        const std::vector<uint8_t> data(bytes, bytes + sizeof(databento::MboMsg));
-        mbo::handle_message(mbo::decode_message(data), &book_);
+        const std::span<const uint8_t> bytes(reinterpret_cast<const uint8_t*>(mbo), sizeof(databento::MboMsg));
+        if (const auto message = mbo::MboMessage::parse(bytes)) {
+            mbo::handle_message(*message, &book_);
+        }
 
         const std::uint64_t ts_recv_ns = mbo->ts_recv.time_since_epoch().count();
         const bool due = ts_recv_ns - last_print_ns_ >= print_interval_ns_;
@@ -86,7 +86,7 @@ public:
                   << " ask levels=" << (*security_book)->ask_levels.size() << '\n';
     }
 
-    [[nodiscard]] std::uint64_t records() const { return snapshot_records_ + live_records_; }
+    std::uint64_t records() const { return snapshot_records_ + live_records_; }
 
 private:
     static constexpr double kPriceScale = 1e9;

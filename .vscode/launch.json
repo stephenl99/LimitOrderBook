@@ -5,7 +5,7 @@
       "name": "debug",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build-make/bin/core_test",
+      "program": "${workspaceFolder}/build-cmake/debug/core_test",
       "args": [
         "testdata/add_order_a.bin"
       ],
@@ -16,7 +16,7 @@
       "name": "LLDB: core_test",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build-make/bin/core_test",
+      "program": "${workspaceFolder}/build-cmake/debug/core_test",
       "args": [
         "testdata/add_order_a.bin"
       ],

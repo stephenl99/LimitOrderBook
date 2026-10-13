@@ -16,8 +16,8 @@ class Book {
 public:
     StockDirectory directory;
     SecurityBook& book_for(InstrumentId stock_locate);
-    [[nodiscard]] std::optional<SecurityBook *> find(InstrumentId stock_locate) const;
-    [[nodiscard]] std::vector<InstrumentId> security_locates() const;
+    std::optional<SecurityBook *> find(InstrumentId stock_locate) const;
+    std::vector<InstrumentId> security_locates() const;
 
 private:
     std::unordered_map<InstrumentId, std::unique_ptr<SecurityBook>> security_books;

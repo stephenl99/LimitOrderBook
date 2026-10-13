@@ -1,6 +1,5 @@
-# --- Makefile build (the build system; meson dropped) ---
-build-make/
-build-make-release/
+# --- Build trees (CMake presets; the Makefile is a wrapper around them) ---
+build-cmake/
 compile_commands.json
 
 # --- Vendored databento-cpp (cloned + built locally, see Makefile) ---
@@ -74,3 +73,4 @@ testdata/queue_*.bin
 *.dbn
 *.dbn.zst
 *.depth.csv
+

@@ -4,7 +4,7 @@
 
 namespace itch {
 
-bool CrossTradeMessage::decode(const std::vector<uint8_t>& data)
+bool CrossTradeMessage::decode(std::span<const uint8_t> data)
 {
     if (!decode_header(data, kPayloadSize, 'Q')) {
         return false;

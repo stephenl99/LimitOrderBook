@@ -4,7 +4,7 @@
 
 namespace itch {
 
-bool StockDirectoryMessage::decode(const std::vector<uint8_t>& data)
+bool StockDirectoryMessage::decode(std::span<const uint8_t> data)
 {
     if (!decode_header(data, kPayloadSize, 'R')) {
         return false;
