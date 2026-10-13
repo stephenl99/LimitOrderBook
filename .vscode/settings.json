@@ -1,5 +1,11 @@
 {
   "terminal.integrated.env.osx": {
     "PATH": "${workspaceFolder}:${env:PATH}"
-  }
+  },
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}",
+    "--header-insertion=never"
+  ],
+  "clangd.path": "/usr/bin/clangd"
 }

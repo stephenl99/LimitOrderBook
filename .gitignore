@@ -65,3 +65,12 @@ Desktop.ini
 *.core
 *.dSYM/
 bench.trace/
+
+# Queue benchmark fixtures and plotting env (regen: make queue_report)
+testdata/queue_*.bin
+.venv/
+
+# Databento market data is licensed, never commit it (regen: make mbo_download)
+*.dbn
+*.dbn.zst
+*.depth.csv

@@ -198,12 +198,13 @@ def main() -> None:
 
             if args.mutate_every > 0 and i > 0 and i % args.mutate_every == 0:
                 prev_ref = ref - 1
+                prev_locate = ((i - 1) % args.locates) + 1
                 f.write(
                     order_executed(
                         ref=prev_ref,
                         executed=min(10, args.shares),
                         match=match,
-                        locate=locate,
+                        locate=prev_locate,
                         ts_ns=ts_ns + 1,
                     )
                 )
@@ -213,7 +214,7 @@ def main() -> None:
                     order_cancel(
                         ref=prev_ref,
                         cancelled=min(5, args.shares),
-                        locate=locate,
+                        locate=prev_locate,
                         ts_ns=ts_ns + 2,
                     )
                 )

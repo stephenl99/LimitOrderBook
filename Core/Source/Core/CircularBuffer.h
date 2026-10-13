@@ -7,8 +7,10 @@
 #include <optional>
 #include <utility>
 
-template <std::movable T, std::size_t Capacity>
-    requires std::default_initializable<T>
+template <typename T>
+concept Usable = std::movable<T> && std::default_initializable<T>;
+
+template <Usable T, std::size_t Capacity>
 class CircularBuffer {
     static_assert(Capacity > 0 && (Capacity & (Capacity - 1)) == 0, "Capacity must be a power of two");
 
