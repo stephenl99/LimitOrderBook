@@ -10,8 +10,8 @@
 
 #include "CircularBuffer.h"
 #include "Logger.h"
-#include "Itch/DecodeMessage.h"
-#include "Itch/HandleMessage.h"
+#include "Message/Itch/DecodeMessage.h"
+#include "Message/Itch/HandleMessage.h"
 
 namespace {
 

@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "Core/Book.h"
-#include "Databento/DecodeMessage.h"
-#include "Databento/HandleMessage.h"
+#include "Message/Databento/DecodeMessage.h"
+#include "Message/Databento/HandleMessage.h"
 
 class MboSession {
 public:

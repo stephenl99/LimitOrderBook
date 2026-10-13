@@ -6,7 +6,9 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build-make/bin/core_test",
-      "args": ["testdata/add_order_a.bin"],
+      "args": [
+        "testdata/add_order_a.bin"
+      ],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "make: build core_test"
     },
@@ -15,25 +17,11 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build-make/bin/core_test",
-      "args": ["testdata/add_order_a.bin"],
+      "args": [
+        "testdata/add_order_a.bin"
+      ],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "make: build core_test"
-    },
-    {
-      "name": "LLDB: app",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/build-make/bin/app",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "preLaunchTask": "make: build app"
-    },
-    {
-      "name": "Run App (no debug)",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "./run.sh",
-      "cwd": "${workspaceFolder}"
     },
     {
       "name": "Run Core Test (no debug)",

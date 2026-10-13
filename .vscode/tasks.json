@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "make: build app",
+      "label": "make: build core_test",
       "type": "shell",
-      "command": "make app",
+      "command": "make core_test",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -12,17 +12,9 @@
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": ["$gcc"]
-    },
-    {
-      "label": "make: build core_test",
-      "type": "shell",
-      "command": "make core_test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": "build",
-      "problemMatcher": ["$gcc"]
+      "problemMatcher": [
+        "$gcc"
+      ]
     },
     {
       "label": "debug",

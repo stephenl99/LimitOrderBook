@@ -1,13 +1,13 @@
 #include "Core/Book.h"
 #include "Core/Decoder.h"
 #include "Core/StockDirectory.h"
-#include "Itch/AddOrderMessage.h"
-#include "Itch/DecodeMessage.h"
-#include "Itch/OrderCancelMessage.h"
-#include "Itch/OrderDeleteMessage.h"
-#include "Itch/OrderExecutedWithPriceMessage.h"
-#include "Itch/OrderReplaceMessage.h"
-#include "Itch/StockDirectoryMessage.h"
+#include "Message/Itch/AddOrderMessage.h"
+#include "Message/Itch/DecodeMessage.h"
+#include "Message/Itch/OrderCancelMessage.h"
+#include "Message/Itch/OrderDeleteMessage.h"
+#include "Message/Itch/OrderExecutedWithPriceMessage.h"
+#include "Message/Itch/OrderReplaceMessage.h"
+#include "Message/Itch/StockDirectoryMessage.h"
 
 #include <gtest/gtest.h>
 

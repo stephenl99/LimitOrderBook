@@ -30,21 +30,16 @@ DATABENTO_BROTLI := $(shell brew --prefix brotli)
 DATABENTO_HTTP_LDFLAGS := -L$(DATABENTO_BROTLI)/lib -lbrotlidec -lbrotlienc -lbrotlicommon -lz \
 	-framework CoreFoundation -framework CFNetwork -framework Security
 
-.PHONY: all clean core_test app itch_dump bench compile_commands databento_smoke debug asan tsan perf profile queue_bench queue_report live databento_replay databento_download mbo_cost mbo_download replay book_plots
+.PHONY: all clean core_test itch_dump bench compile_commands databento_smoke debug asan tsan perf profile queue_bench queue_report live databento_replay databento_download mbo_cost mbo_download replay book_plots
 
-all: core_test app itch_dump bench
+all: core_test itch_dump bench
 
 core_test: $(BIN)/core_test
-app: $(BIN)/app
 itch_dump: $(BIN)/itch_dump
 bench: $(BIN)/bench
 queue_bench: $(BIN)/queue_bench
 
 $(BIN)/core_test: $(CORE_OBJS) $(BUILD)/Core/Test/Main.o
-	@mkdir -p $(BIN)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-$(BIN)/app: $(CORE_OBJS) $(BUILD)/App/Source/App.o
 	@mkdir -p $(BIN)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 

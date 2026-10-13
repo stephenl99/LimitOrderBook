@@ -6,8 +6,8 @@
 #include <queue>
 #include <thread>
 
-#include "Itch/DecodeMessage.h"
-#include "Itch/HandleMessage.h"
+#include "Message/Itch/DecodeMessage.h"
+#include "Message/Itch/HandleMessage.h"
 
 std::expected<std::unique_ptr<Book>, std::string> MutexDecoder::decode_file(const std::filesystem::path& input_path)
 {

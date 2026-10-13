@@ -7,7 +7,6 @@ MAIN_SRCS = [
     "Core/Test/Main.cpp",
     "Core/Test/BenchMain.cpp",
     "Core/Test/QueueBench.cpp",
-    "App/Source/App.cpp",
     "App/Source/ItchDump.cpp",
     "tools/verify_mbo_offsets.cpp",
 ]
