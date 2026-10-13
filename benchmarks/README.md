@@ -108,6 +108,26 @@ decompression included:
 Each step measured against the one before in alternating runs. The book printed after every one of the 134,206
 completed events is identical at every step.
 
+### Single thread vs ring pipeline on the real data
+
+`make replay_compare` — same file, same decoder and book, 25 alternating runs each, results in
+`replay_threading.csv`:
+
+| | median | middle half of runs |
+|---|---|---|
+| single thread | 9.2–9.5 M/s | 9.0–9.6 |
+| ring pipeline (`MessagePipeline<MboMessage, 65536>`) | 11.0–12.3 M/s | 9.8–13.3 |
+
+Two sessions, ring / single = 1.20x and 1.28x. The ring version is noisier.
+
+This is the opposite of the ITCH result above, where one thread beats the pipeline, and the difference is what goes
+through the ring. ITCH pushes a `unique_ptr<Message>`: allocated on the parser thread, freed on the handler thread.
+Databento pushes an `MboMessage` by value, about 70 bytes, no allocation at all. The producer side also has real work
+to overlap with the book (zstd decompression and the SDK's record decoding).
+
+The book printed after every completed event is identical in both modes, and TSan is clean on the ring replay.
+Caveat: it's one quiet hour, 163k records, about 15 ms of work, so thread start-up is a visible part of each run.
+
 ## Fixtures
 
 ITCH: `gen_big_mix.py --locates 8 --mutate-every 4`, adds over 8 symbols with an execute + cancel every 4th add.
@@ -115,7 +135,7 @@ Synthetic. Still need a real NASDAQ sample.
 
 ## Next
 
-- messages by value in the ring (a `variant`) instead of `unique_ptr<Message>` — the last per-message allocation on the ITCH path, and the one that crosses threads
+- messages by value in the ITCH ring (a `variant`) instead of `unique_ptr<Message>` — the last per-message allocation on that path, and the one that crosses threads. The Databento pipeline already does this and it's the one case where two threads beat one
 - cache the opposite counter in the ring, rerun spin vs yield
 - flat price levels near the top of book instead of `std::map`
 - real NASDAQ data

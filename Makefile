@@ -21,7 +21,7 @@ define cmake_build
 endef
 
 .PHONY: all clean test compile_commands $(BINARIES) debug asan tsan perf profile queue_report \
-	live mbo_cost mbo_download replay book_plots
+	live mbo_cost mbo_download replay replay_live replay_compare book_plots
 
 all:
 	$(call cmake_build,$(PRESET),all)
@@ -103,16 +103,19 @@ queue_report: $(QUEUE_FIXTURES) $(VENV)/bin/python
 
 LIVE_SYMBOL ?= ESZ6
 LIVE_SECONDS ?= 15
+LIVE_DATASET ?= GLBX.MDP3
 
 live:
 	$(call cmake_build,debug,databento_smoke)
-	$(DEBUG_BIN)/databento_smoke $(LIVE_SYMBOL) $(LIVE_SECONDS)
+	$(DEBUG_BIN)/databento_smoke $(LIVE_SYMBOL) $(LIVE_SECONDS) $(LIVE_DATASET)
 
 MBO_SYMBOL ?= ESZ6
 MBO_START ?= 2026-10-08T00:00
 MBO_END ?= 2026-10-08T01:00
 MBO_FILE ?= testdata/$(MBO_SYMBOL).mbo.dbn.zst
 MBO_PRINT_EVERY ?= 60
+MBO_SPEED ?= 0
+MBO_THREADING ?= single
 
 mbo_cost:
 	$(call cmake_build,debug,databento_download)
@@ -124,7 +127,16 @@ mbo_download:
 
 replay:
 	$(call cmake_build,release,databento_replay)
-	$(RELEASE_BIN)/databento_replay $(MBO_FILE) $(MBO_SYMBOL) $(MBO_PRINT_EVERY)
+	$(RELEASE_BIN)/databento_replay $(MBO_FILE) $(MBO_SYMBOL) $(MBO_PRINT_EVERY) "" 40 $(MBO_SPEED) $(MBO_THREADING)
+
+replay_live:
+	$(MAKE) replay MBO_SPEED=1 MBO_PRINT_EVERY=1 MBO_THREADING=ring
+
+COMPARE_RUNS ?= 25
+
+replay_compare:
+	$(call cmake_build,release,databento_replay)
+	python3 tools/compare_replay.py $(RELEASE_BIN)/databento_replay $(MBO_FILE) $(MBO_SYMBOL) $(COMPARE_RUNS) benchmarks/replay_threading.csv
 
 DEPTH_CSV := $(MBO_FILE:.mbo.dbn.zst=.depth.csv)
 DEPTH_EVERY ?= 1

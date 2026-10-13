@@ -36,6 +36,8 @@ public:
     int64_t raw_price() const { return price_; }
     uint32_t size() const { return size_; }
     uint8_t flags() const { return flags_; }
+    bool is_last() const { return (flags_ & kFlagLast) != 0; }
+    bool is_snapshot() const { return (flags_ & kFlagSnapshot) != 0; }
     uint8_t channel_id() const { return channel_id_; }
     Action action() const { return action_; }
     Side side() const { return side_; }
@@ -44,6 +46,8 @@ public:
     uint32_t sequence() const { return sequence_; }
 
     static constexpr size_t kPayloadSize = 56;
+    static constexpr uint8_t kFlagLast = 0x80;
+    static constexpr uint8_t kFlagSnapshot = 0x20;
 
     static constexpr size_t kLength = 0;
     static constexpr size_t kRType = 1;

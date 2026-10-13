@@ -6,18 +6,28 @@
 #include <databento/record.hpp>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <ostream>
 #include <span>
 #include <string>
 
 #include "Core/Book.h"
+#include "Core/MessagePipeline.h"
 #include "Message/Databento/HandleMessage.h"
+
+enum class Threading {
+    Single,
+    Pipeline,
+};
 
 class MboSession {
 public:
-    MboSession(std::string symbol, std::chrono::nanoseconds print_interval)
+    MboSession(std::string symbol, std::chrono::nanoseconds print_interval, Threading threading = Threading::Single)
         : symbol_(std::move(symbol)), print_interval_ns_(static_cast<std::uint64_t>(print_interval.count()))
     {
+        if (threading == Threading::Pipeline) {
+            pipeline_.emplace(ApplyOnConsumer{this});
+        }
     }
 
     void log_depth_to(std::ostream& out, std::size_t levels)
@@ -45,24 +55,23 @@ public:
         if (mbo == nullptr) {
             return;
         }
-        count(*mbo);
 
         const std::span<const uint8_t> bytes(reinterpret_cast<const uint8_t*>(mbo), sizeof(databento::MboMsg));
-        if (const auto message = mbo::MboMessage::parse(bytes)) {
-            mbo::handle_message(*message, &book_);
+        const auto message = mbo::MboMessage::parse(bytes);
+        if (!message) {
+            return;
         }
+        if (pipeline_) {
+            pipeline_->push(*message);
+        } else {
+            apply(*message);
+        }
+    }
 
-        const std::uint64_t ts_recv_ns = mbo->ts_recv.time_since_epoch().count();
-        const bool due = ts_recv_ns - last_print_ns_ >= print_interval_ns_;
-        if (mbo->flags.IsLast() && !mbo->flags.IsSnapshot() && due) {
-            last_print_ns_ = ts_recv_ns;
-            if (const auto security_book = book_.find(mbo->hd.instrument_id)) {
-                if (depth_log_ != nullptr) {
-                    write_depth(ts_recv_ns, **security_book);
-                } else {
-                    print_top_of_book(ts_recv_ns, **security_book);
-                }
-            }
+    void finish()
+    {
+        if (pipeline_) {
+            pipeline_->finish();
         }
     }
 
@@ -91,34 +100,60 @@ public:
 private:
     static constexpr double kPriceScale = 1e9;
 
-    void count(const databento::MboMsg& mbo)
+    static constexpr std::size_t kQueueCapacity = 1 << 16;
+
+    struct ApplyOnConsumer {
+        MboSession* session;
+        void operator()(const mbo::MboMessage& message) const { session->apply(message); }
+    };
+
+    void apply(const mbo::MboMessage& message)
     {
-        if (mbo.flags.IsSnapshot()) {
+        count(message);
+        mbo::handle_message(message, &book_);
+
+        const std::uint64_t ts_recv_ns = message.ts_recv();
+        const bool due = ts_recv_ns - last_print_ns_ >= print_interval_ns_;
+        if (message.is_last() && !message.is_snapshot() && due) {
+            last_print_ns_ = ts_recv_ns;
+            if (const auto security_book = book_.find(message.instrument_id())) {
+                if (depth_log_ != nullptr) {
+                    write_depth(ts_recv_ns, **security_book);
+                } else {
+                    print_top_of_book(ts_recv_ns, **security_book);
+                }
+            }
+        }
+    }
+
+    void count(const mbo::MboMessage& message)
+    {
+        if (message.is_snapshot()) {
             ++snapshot_records_;
         } else {
             ++live_records_;
         }
-        last_instrument_id_ = mbo.hd.instrument_id;
-        switch (mbo.action) {
-        case databento::Action::Add:
+        last_instrument_id_ = message.instrument_id();
+        switch (message.action()) {
+        case mbo::Action::Add:
             ++adds_;
             break;
-        case databento::Action::Cancel:
+        case mbo::Action::Cancel:
             ++cancels_;
             break;
-        case databento::Action::Modify:
+        case mbo::Action::Modify:
             ++modifies_;
             break;
-        case databento::Action::Fill:
+        case mbo::Action::Fill:
             ++fills_;
             break;
-        case databento::Action::Trade:
+        case mbo::Action::Trade:
             ++trades_;
             break;
-        case databento::Action::Clear:
+        case mbo::Action::Clear:
             ++clears_;
             break;
-        default:
+        case mbo::Action::None:
             break;
         }
     }
@@ -180,4 +215,6 @@ private:
     std::uint64_t gateway_errors_ = 0;
     std::uint64_t crossed_prints_ = 0;
     std::uint32_t last_instrument_id_ = 0;
+
+    std::optional<MessagePipeline<mbo::MboMessage, kQueueCapacity, ApplyOnConsumer>> pipeline_;
 };
