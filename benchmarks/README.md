@@ -81,15 +81,18 @@ Producer sends at a fixed rate, stamps each item with its scheduled send time, c
 
 | rate | variant | p50 | p99 | p99.9 |
 |---|---|---|---|---|
-| 10k/s | mutex | 5.79 µs | 16.7 µs | 1.2 ms |
-| | ring, yield | 167 ns | 3.6 µs | 12.3 µs |
-| | ring, spin | 84 ns | 3.2 µs | 8.8 µs |
-| 100k/s | mutex | 5.88 µs | 9.4 µs | 18.2 µs |
-| | ring, yield | 166 ns | 3.2 µs | 12.4 µs |
-| | ring, spin | 83 ns | 1.4 µs | 8.9 µs |
-| 1M/s | mutex | 1.54 µs | 9.8 µs | 22.8 µs |
-| | ring, yield | 167 ns | 3.3 µs | 12.5 µs |
-| | ring, spin | 83 ns | 2.6 µs | 9.0 µs |
+| 10k/s | mutex | 5.96 µs | 16.0 µs | 25.8 µs |
+| | ring, yield | 167 ns | 4.9 µs | 224 µs |
+| | ring, spin | 83 ns | 3.2 µs | 8.7 µs |
+| | ring, back-off | 167 ns | 3.6 µs | 16.0 µs |
+| 100k/s | mutex | 5.96 µs | 9.1 µs | 18.0 µs |
+| | ring, yield | 167 ns | 2.0 µs | 14.9 µs |
+| | ring, spin | 84 ns | 0.8 µs | 8.5 µs |
+| | ring, back-off | 167 ns | 1.8 µs | 12.1 µs |
+| 1M/s | mutex | 1.46 µs | 9.6 µs | 22.3 µs |
+| | ring, yield | 167 ns | 2.6 µs | 12.8 µs |
+| | ring, spin | 83 ns | 1.6 µs | 7.2 µs |
+| | ring, back-off | 84 ns | 1.6 µs | 8.8 µs |
 
 ![handoff latency](handoff_latency.png)
 
@@ -97,8 +100,8 @@ With the mutex the consumer is asleep on the condition variable most of the time
 ~6 µs. The ring's consumer is already running, so the median is 35x (yield) to 70x (spin) lower. At 1M/s the mutex
 median drops to 1.5 µs because the consumer rarely gets a chance to go to sleep.
 
-p99.9 moves a lot between sessions (an earlier run had yield at 600 µs at 10k/s). It's mostly the OS. The medians and
-p99s have been stable across runs.
+p99.9 moves a lot between sessions (yield at 10k/s has measured anywhere from 12 µs to 600 µs). It's mostly the OS.
+The medians and p99s have been stable across runs.
 
 Clock resolution here is ~42 ns (mach ticks), so 83 and 167 are 2 and 4 ticks.
 
@@ -108,16 +111,38 @@ Clock resolution here is ~42 ns (mach ticks), so 83 and 167 are 2 and 4 ticks.
 
 | variant | median |
 |---|---|
-| mutex | 21.3 M/s |
-| ring, yield | 42.2 M/s |
-| ring, spin | 25.2 M/s |
+| mutex | 22.0 M/s |
+| ring, yield | 41.7 M/s |
+| ring, spin | 23.3 M/s |
+| ring, back-off | 52.5 M/s |
 
 ![queue handoff](queue_handoff.png)
 
-Yield is 2x the mutex. Spin is barely faster than the mutex, which surprised me: the side that's waiting keeps
-reloading the other side's counter in a tight loop, so the two cores fight over that cache line. Yielding backs off and
-lets the other side run. So the idle strategy is a real tradeoff: spin for latency, yield for throughput. Caching the
-other side's counter locally should fix most of it (not done yet).
+## Idle strategy
+
+What a side does when the ring is empty (consumer) or full (producer). It's a template parameter on
+`MessagePipeline` (`Core/Source/Core/IdleStrategy.h`):
+
+- **yield** — `std::this_thread::yield()`, a system call that gives the core to the OS scheduler
+- **spin** — the CPU's pause instruction in a tight loop, never gives the core up
+- **back-off** — pause 2000 times, then yield 2000 times, then sleep 20 µs at a time; reset after every successful push/pop
+
+Spin has the best latency everywhere but is barely faster than the mutex flat out: the waiting side keeps reloading
+the other side's counter, so the two cores fight over that cache line. Yield fixes the throughput by backing off, at
+the cost of a syscall per idle check and worse tails when the feed is quiet.
+
+Back-off gets both. It's the fastest flat-out (52.5 M/s): a full or empty ring is usually resolved within the spin
+phase, so it doesn't pay a syscall, and if it isn't it stops hammering the cache line. At 1M/s messages arrive every
+1 µs, inside the spin phase, so latency matches spin (84 ns). At 10k/s it has moved on to yielding by the time the
+next message arrives, so its median matches yield (167 ns) but its p99.9 is much better (16 µs vs 224 µs).
+
+None of these rates is slow enough to reach the sleep tier (it starts after a few ms idle). On a feed quieter than a
+few hundred messages a second, back-off would add up to ~20 µs of latency to the first message after a gap. That's the
+trade for not burning a core while nothing is happening.
+
+On the real ESZ6 replay back-off and yield are level on throughput (14.7 vs 14.9 M/s median, back-off with the
+tighter spread), so the Databento pipeline (`MboSession`, used for replay and live) uses back-off and the ITCH file
+decoder keeps the default, yield.
 
 ## Real data
 
@@ -163,7 +188,7 @@ Synthetic. Still need a real NASDAQ sample.
 ## Next
 
 - messages by value in the ITCH ring (a `variant`) instead of `unique_ptr<Message>` — the last per-message allocation on that path, and the one that crosses threads. The Databento pipeline already does this and it's the one case where two threads beat one
-- cache the opposite counter in the ring, rerun spin vs yield
+- cache the opposite counter in the ring, rerun all four idle strategies
 - LTO so the byte readers inline into the decoders (~11% in decode today)
 - `reserve` the order index (~3% in rehash), and look at teardown
 - flat price levels instead of `std::map` — only ~4% in the profile, so low priority

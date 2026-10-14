@@ -10,11 +10,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-COLORS = {"mutex": "#2a78d6", "ring": "#eb6834", "ring_spin": "#1baf7a", "single": "#52514e"}
+COLORS = {"mutex": "#2a78d6", "ring": "#eb6834", "ring_spin": "#1baf7a", "ring_backoff": "#e87ba4", "single": "#52514e"}
 NAMES = {
     "mutex": "mutex + condvar",
     "ring": "ring, yield when idle",
     "ring_spin": "ring, spin when idle",
+    "ring_backoff": "ring, spin then back off",
     "single": "single thread, no queue",
 }
 INK = "#0b0b0b"
@@ -63,8 +64,8 @@ def style(ax):
 
 
 def handoff(rows, out):
-    impls = ["mutex", "ring", "ring_spin"]
-    fig, ax = plt.subplots(figsize=(6.4, 4))
+    impls = ["mutex", "ring", "ring_spin", "ring_backoff"]
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
     size = next(s for (b, _, s) in rows if b == "queue")
     for x, impl in enumerate(impls):
         values = rows[("queue", impl, size)]
@@ -74,7 +75,7 @@ def handoff(rows, out):
         ax.hlines(median, x - 0.25, x + 0.25, color=INK, linewidth=1.5)
         ax.annotate(f"{median:.0f}M/s", (x + 0.28, median), va="center", fontsize=9, color=INK)
 
-    ax.set_xticks(range(len(impls)), [NAMES[i] for i in impls], color=INK, fontsize=9)
+    ax.set_xticks(range(len(impls)), [NAMES[i].replace(", ", ",\n") for i in impls], color=INK, fontsize=9)
     ax.set_xlim(-0.6, len(impls) - 0.2)
     ax.set_ylim(bottom=0)
     ax.set_ylabel("items handed off per second (millions)", color=MUTED, fontsize=9)
@@ -113,7 +114,7 @@ def decode(rows, out):
 
 
 def latency(rows, out):
-    impls = ["mutex", "ring", "ring_spin"]
+    impls = ["mutex", "ring", "ring_spin", "ring_backoff"]
     rates = sorted({rate for (_, rate) in rows})
     fig, axes = plt.subplots(1, len(rates), figsize=(9.6, 4), sharey=True)
     xs = range(len(PERCENTILES))
@@ -135,10 +136,10 @@ def latency(rows, out):
     axes[0].minorticks_off()
     axes[0].set_ylabel("push to pop latency (log scale)", color=MUTED, fontsize=9)
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, frameon=False, fontsize=9, ncol=3, loc="lower right", bbox_to_anchor=(0.99, 0.0))
-    fig.suptitle("Handoff latency at a fixed send rate", x=0.065, y=0.97, ha="left", fontsize=11, color=INK)
-    fig.text(0.065, 0.02, "line = median across runs, band = middle half of runs", fontsize=8, color=MUTED)
-    fig.tight_layout(rect=(0, 0.06, 1, 0.95))
+    fig.legend(handles, labels, frameon=False, fontsize=9, ncol=4, loc="lower center", bbox_to_anchor=(0.5, 0.0))
+    fig.suptitle("Handoff latency at a fixed send rate", x=0.065, y=0.975, ha="left", fontsize=11, color=INK)
+    fig.text(0.065, 0.905, "line = median across runs, band = middle half of runs", fontsize=8, color=MUTED)
+    fig.tight_layout(rect=(0, 0.07, 1, 0.89))
     fig.savefig(out / "handoff_latency.png", dpi=160)
     plt.close(fig)
 

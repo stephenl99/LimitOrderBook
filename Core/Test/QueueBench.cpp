@@ -21,6 +21,7 @@
 #include "Baseline/MutexDecoder.h"
 #include "Baseline/SingleThreadDecoder.h"
 #include "Core/CircularBuffer.h"
+#include "Core/IdleStrategy.h"
 #include "Core/Decoder.h"
 
 namespace fs = std::filesystem;
@@ -37,23 +38,6 @@ void prefer_performance_cores()
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
 }
-
-void cpu_pause()
-{
-#if defined(__aarch64__)
-    __builtin_arm_yield();
-#elif defined(__x86_64__)
-    __builtin_ia32_pause();
-#endif
-}
-
-struct YieldWhenIdle {
-    static void wait() { std::this_thread::yield(); }
-};
-
-struct SpinWhenIdle {
-    static void wait() { cpu_pause(); }
-};
 
 std::int64_t now_ns()
 {
@@ -125,8 +109,9 @@ public:
     void push(std::int64_t value)
     {
         while (!ring_.try_push(std::move(value))) {
-            Idle::wait();
+            push_idle_.wait();
         }
+        push_idle_.reset();
     }
 
     void close() { done_.store(true, std::memory_order_release); }
@@ -135,6 +120,7 @@ public:
     {
         while (true) {
             if (auto item = ring_.try_pop()) {
+                pop_idle_.reset();
                 value = *item;
                 return true;
             }
@@ -143,7 +129,7 @@ public:
                     return false;
                 }
             } else {
-                Idle::wait();
+                pop_idle_.wait();
             }
         }
     }
@@ -151,6 +137,8 @@ public:
 private:
     CircularBuffer<std::int64_t, kRingCapacity> ring_;
     std::atomic<bool> done_ = false;
+    Idle push_idle_;
+    Idle pop_idle_;
 };
 
 template <typename Queue>
@@ -203,7 +191,7 @@ std::vector<std::int64_t> paced_latencies(std::int64_t items, std::int64_t inter
     return latencies;
 }
 
-const std::array<std::string, 3> kQueueImpls = {"mutex", "ring", "ring_spin"};
+const std::array<std::string, 4> kQueueImpls = {"mutex", "ring", "ring_spin", "ring_backoff"};
 
 std::int64_t transfer_with(const std::string& impl, std::int64_t items)
 {
@@ -213,7 +201,10 @@ std::int64_t transfer_with(const std::string& impl, std::int64_t items)
     if (impl == "ring") {
         return transfer<RingQueue<YieldWhenIdle>>(items);
     }
-    return transfer<RingQueue<SpinWhenIdle>>(items);
+    if (impl == "ring_spin") {
+        return transfer<RingQueue<SpinWhenIdle>>(items);
+    }
+    return transfer<RingQueue<BackoffWhenIdle>>(items);
 }
 
 std::vector<std::int64_t> paced_latencies_with(const std::string& impl, std::int64_t items, std::int64_t interval_ns)
@@ -224,7 +215,10 @@ std::vector<std::int64_t> paced_latencies_with(const std::string& impl, std::int
     if (impl == "ring") {
         return paced_latencies<RingQueue<YieldWhenIdle>>(items, interval_ns);
     }
-    return paced_latencies<RingQueue<SpinWhenIdle>>(items, interval_ns);
+    if (impl == "ring_spin") {
+        return paced_latencies<RingQueue<SpinWhenIdle>>(items, interval_ns);
+    }
+    return paced_latencies<RingQueue<BackoffWhenIdle>>(items, interval_ns);
 }
 
 std::int64_t percentile(const std::vector<std::int64_t>& sorted, double p)

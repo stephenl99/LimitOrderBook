@@ -8,8 +8,9 @@
 #include <utility>
 
 #include "CircularBuffer.h"
-
-template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler>
+#include "IdleStrategy.h"
+// invocable to make sure the handler can accept the message as an arg
+template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle>
 class MessagePipeline {
 public:
     explicit MessagePipeline(Handler handler)
@@ -25,8 +26,9 @@ public:
     void push(Message message)
     {
         while (!queue_.try_push(std::move(message))) {
-            std::this_thread::yield();
+            producer_idle_.wait();
         }
+        producer_idle_.reset();
     }
 
     void finish()
@@ -43,25 +45,28 @@ private:
     {
         while (true) {
             if (auto message = queue_.try_pop()) {
+                consumer_idle_.reset();
                 handler_(*message);
             } else if (producer_done_.load(std::memory_order_acquire)) {
                 if (queue_.empty()) {
                     break;
                 }
             } else {
-                std::this_thread::yield();
+                consumer_idle_.wait();
             }
         }
     }
 
     CircularBuffer<Message, Capacity> queue_;
     std::atomic<bool> producer_done_ = false;
+    Idle producer_idle_;
+    Idle consumer_idle_;
     Handler handler_;
     std::thread consumer_;
 };
 
-template <typename Message, std::size_t Capacity, typename Handler>
-MessagePipeline<Message, Capacity, std::decay_t<Handler>> make_pipeline(Handler&& handler)
+template <typename Message, std::size_t Capacity, typename Idle = YieldWhenIdle, typename Handler>
+MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle> make_pipeline(Handler&& handler)
 {
-    return MessagePipeline<Message, Capacity, std::decay_t<Handler>>(std::forward<Handler>(handler));
+    return MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle>(std::forward<Handler>(handler));
 }

@@ -216,5 +216,5 @@ private:
     std::uint64_t crossed_prints_ = 0;
     std::uint32_t last_instrument_id_ = 0;
 
-    std::optional<MessagePipeline<mbo::MboMessage, kQueueCapacity, ApplyOnConsumer>> pipeline_;
+    std::optional<MessagePipeline<mbo::MboMessage, kQueueCapacity, ApplyOnConsumer, BackoffWhenIdle>> pipeline_;
 };
