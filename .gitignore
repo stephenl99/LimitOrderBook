@@ -74,3 +74,4 @@ testdata/queue_*.bin
 *.dbn.zst
 *.depth.csv
 
+benchmarks/profile_sample.txt

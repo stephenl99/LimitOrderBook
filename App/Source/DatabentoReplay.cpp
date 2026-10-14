@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     }
 
     const std::filesystem::path path = argv[1];
-    const std::string label = argc > 2 ? argv[2] : path.stem().string();
+    const std::string label = argc > 2 ? argv[2] : path.stem().string(); // where to print the results to
     const int print_every_seconds = argc > 3 ? std::atoi(argv[3]) : 60;
     const std::filesystem::path depth_path = argc > 4 ? argv[4] : "";
     const std::size_t depth_levels = argc > 5 ? static_cast<std::size_t>(std::atoi(argv[5])) : 40;

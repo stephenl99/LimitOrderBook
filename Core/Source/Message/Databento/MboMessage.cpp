@@ -1,7 +1,7 @@
 #include "Message/Databento/MboMessage.h"
 
 namespace mbo {
-
+//note all of this is little endian. db is little and itch is big
 uint16_t MboMessage::read_u16_le(std::span<const uint8_t> data, size_t offset)
 {
     return static_cast<uint16_t>(data[offset]) | (static_cast<uint16_t>(data[offset + 1]) << 8);

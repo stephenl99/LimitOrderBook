@@ -20,7 +20,7 @@ define cmake_build
 @cmake --build --preset $(1) --target $(2)
 endef
 
-.PHONY: all clean test compile_commands $(BINARIES) debug asan tsan perf profile queue_report \
+.PHONY: all clean test compile_commands $(BINARIES) debug asan tsan perf profile profile_text queue_report \
 	live mbo_cost mbo_download replay replay_live replay_compare book_plots
 
 all:
@@ -68,11 +68,26 @@ perf: $(PERF_FIXTURE)
 	$(call cmake_build,release,bench)
 	/usr/bin/time -l $(RELEASE_BIN)/bench $(PERF_REPEATS) $(PERF_FIXTURE)
 
-profile: $(PERF_FIXTURE)
-	$(call cmake_build,release,bench)
+PROFILE_TARGET ?= bench
+PROFILE_FIXTURE ?= testdata/queue_1000000.bin
+PROFILE_ARGS ?= 80 $(PROFILE_FIXTURE)
+
+profile: $(PROFILE_FIXTURE)
+	$(call cmake_build,release,$(PROFILE_TARGET))
 	rm -rf bench.trace
-	xcrun xctrace record --template 'Time Profiler' --output bench.trace --launch -- $(RELEASE_BIN)/bench $(PERF_REPEATS) $(PERF_FIXTURE)
+	xcrun xctrace record --template 'Time Profiler' --output bench.trace --launch -- $(RELEASE_BIN)/$(PROFILE_TARGET) $(PROFILE_ARGS)
 	open bench.trace
+
+PROFILE_SECONDS ?= 10
+PROFILE_TEXT := benchmarks/profile_sample.txt
+
+profile_text: $(PROFILE_FIXTURE)
+	$(call cmake_build,release,$(PROFILE_TARGET))
+	@mkdir -p benchmarks
+	@$(RELEASE_BIN)/$(PROFILE_TARGET) $(PROFILE_ARGS) > /dev/null & pid=$$!; sleep 2; \
+		sample $$pid $(PROFILE_SECONDS) 1 -file $(PROFILE_TEXT) > /dev/null 2>&1; kill $$pid 2> /dev/null; wait $$pid 2> /dev/null; true
+	@sed -n '/Sort by top of stack/,$$p' $(PROFILE_TEXT) | head -32
+	@echo "full call tree in $(PROFILE_TEXT)"
 
 QUEUE_SIZES := 10000 100000 1000000
 QUEUE_FIXTURES := $(foreach n,$(QUEUE_SIZES),testdata/queue_$(n).bin)

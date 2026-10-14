@@ -47,6 +47,33 @@ for a live feed where the network read can't wait on the book; there the number 
 
 All three decoders produce the same book on the 1.5M file (same resting orders and depth per level on all 8 locates).
 
+## Where the time goes
+
+`make profile_text` — macOS `sample` on the release ITCH ring decoder for 10 s, 1 ms interval, the 1.5M message file
+replayed in a loop. Share of on-CPU samples across the worker threads plus teardown (the main thread's time blocked in
+`join` is left out):
+
+| | share | what it is |
+|---|---|---|
+| `malloc` / `free` | ~38% | the `unique_ptr<Message>` per message: allocated on the parser thread, freed on the handler thread |
+| `__dynamic_cast` | ~12% | the cast to the concrete message type in `itch::handle_message` |
+| decoding bytes | ~11% | `decode_message`, `decode_header`, `read_u64`/`read_u32`. These are in another .cpp so they aren't inlined |
+| destroying the book | ~10% | `~Book` at the end of each run, one pool deallocate per list node and hash node for 1M orders |
+| `sched_yield` | ~9% | a thread spinning in `yield()` while the other one catches up |
+| pool allocate | ~4% | taking list and index nodes from the pool |
+| `std::map` level lookup | ~4% | `SecurityBook::level_for` |
+| hash table rehash | ~3% | the order index growing; nothing is reserved up front |
+| everything else | ~9% | the book operations themselves, `book_for`, order construction |
+
+So half the time is still the heap-allocated polymorphic message (`malloc`/`free` + `dynamic_cast`). That's the next
+thing to fix, and it's the same fix the Databento path already has. The `std::map` I expected to be the big one is 4%.
+
+Teardown showing up at 10% also explains why `make perf` (which times whole runs including destroying the book)
+reports ~5.2 M/s where the decode table above (which stops the clock before teardown) reports ~6.9 M/s for the same
+decoder.
+
+`make profile` records the same workload in Instruments if you want the GUI.
+
 ## Handoff latency
 
 Producer sends at a fixed rate, stamps each item with its scheduled send time, consumer records `now - stamp`.
@@ -137,5 +164,7 @@ Synthetic. Still need a real NASDAQ sample.
 
 - messages by value in the ITCH ring (a `variant`) instead of `unique_ptr<Message>` — the last per-message allocation on that path, and the one that crosses threads. The Databento pipeline already does this and it's the one case where two threads beat one
 - cache the opposite counter in the ring, rerun spin vs yield
-- flat price levels near the top of book instead of `std::map`
+- LTO so the byte readers inline into the decoders (~11% in decode today)
+- `reserve` the order index (~3% in rehash), and look at teardown
+- flat price levels instead of `std::map` — only ~4% in the profile, so low priority
 - real NASDAQ data
