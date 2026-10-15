@@ -6,7 +6,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <thread>
+#include <unordered_map>
 
 #include "MboSession.h"
 
@@ -44,12 +46,25 @@ private:
     std::chrono::steady_clock::time_point wall_start_;
 };
 
+std::unordered_map<InstrumentId, std::string> instrument_names(const db::Metadata& metadata)
+{
+    std::unordered_map<InstrumentId, std::string> names;
+    for (const auto& mapping : metadata.mappings) {
+        for (const auto& interval : mapping.intervals) {
+            if (!interval.symbol.empty()) {
+                names[static_cast<InstrumentId>(std::stoul(interval.symbol))] = mapping.raw_symbol;
+            }
+        }
+    }
+    return names;
+}
+
 }  // namespace
 
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
-        std::cerr << "usage: databento_replay <file.dbn.zst> [label] [print_every_seconds] [depth.csv] [levels] [speed] [single|ring]\n"
+        std::cerr << "usage: databento_replay <file.dbn.zst> [label] [print_every_seconds] [depth.csv] [levels] [speed] [single|ring|parse|shardedN]\n"
                   << "  speed 0 replays as fast as possible, 1 at market pace, 60 at one market minute per second\n";
         return 1;
     }
@@ -60,7 +75,13 @@ int main(int argc, char* argv[])
     const std::filesystem::path depth_path = argc > 4 ? argv[4] : "";
     const std::size_t depth_levels = argc > 5 ? static_cast<std::size_t>(std::atoi(argv[5])) : 40;
     const double speed = argc > 6 ? std::atof(argv[6]) : 0.0;
-    const Threading threading = argc > 7 && std::string(argv[7]) == "ring" ? Threading::Pipeline : Threading::Single;
+    const std::string mode = argc > 7 ? argv[7] : "single";
+    const bool sharded = mode.starts_with("sharded");
+    const std::size_t shards = sharded ? std::stoul(mode.substr(7)) : 1;
+    const Threading threading = mode == "ring"    ? Threading::Pipeline
+                                : mode == "parse" ? Threading::ParseOnly
+                                : sharded         ? Threading::Sharded
+                                                  : Threading::Single;
 
     if (!std::filesystem::exists(path)) {
         std::cerr << "databento_replay: no such file " << path << " (run make mbo_download first)\n";
@@ -69,7 +90,7 @@ int main(int argc, char* argv[])
 
     try {
         std::ofstream depth_file;
-        MboSession session(label, std::chrono::seconds{print_every_seconds}, threading);
+        MboSession session(label, std::chrono::seconds{print_every_seconds}, threading, shards);
         if (!depth_path.empty()) {
             depth_file.open(depth_path);
             if (!depth_file) {
@@ -82,7 +103,8 @@ int main(int argc, char* argv[])
         MarketClock clock(speed);
 
         const auto start = std::chrono::steady_clock::now();
-        store.Replay([&](const db::Record& rec) {
+        store.Replay([&](db::Metadata&& metadata) { session.name_instruments(instrument_names(metadata)); },
+                     [&](const db::Record& rec) {
             if (const auto* mbo = rec.GetIf<db::MboMsg>()) {
                 clock.wait_for(*mbo);
             }
@@ -98,7 +120,7 @@ int main(int argc, char* argv[])
             std::cout << " (paced at " << speed << "x market speed)\n";
         } else {
             std::cout << " (" << static_cast<std::uint64_t>(static_cast<double>(session.records()) / seconds)
-                      << " msgs/s, " << (threading == Threading::Pipeline ? "ring pipeline" : "single thread") << ")\n";
+                      << " msgs/s, " << mode << ")\n";
         }
         return session.records() == 0 ? 1 : 0;
     } catch (const db::Exception& e) {

@@ -5,25 +5,48 @@
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace db = databento;
 
+std::vector<std::string> split_symbols(const std::string& list)
+{
+    std::vector<std::string> symbols;
+    std::stringstream stream(list);
+    std::string symbol;
+    while (std::getline(stream, symbol, ',')) {
+        if (!symbol.empty()) {
+            symbols.push_back(symbol);
+        }
+    }
+    return symbols;
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 5) {
-        std::cerr << "usage: databento_download <symbol> <start> <end> <out.dbn.zst> [--confirm]\n"
+        std::cerr << "usage: databento_download <symbol[,symbol...]> <start> <end> <out.dbn.zst> [dataset] [--confirm]\n"
                   << "  times are UTC, e.g. 2026-10-08T00:00\n"
+                  << "  dataset defaults to GLBX.MDP3, e.g. XNAS.ITCH for Nasdaq stocks\n"
                   << "  without --confirm this only prints the cost\n";
         return 1;
     }
 
-    const std::string dataset = "GLBX.MDP3";
-    const std::vector<std::string> symbols = {argv[1]};
+    const std::vector<std::string> symbols = split_symbols(argv[1]);
     const db::DateTimeRange<std::string> range{argv[2], argv[3]};
     const std::filesystem::path out = argv[4];
-    const bool confirmed = argc > 5 && std::string(argv[5]) == "--confirm";
+    std::string dataset = "GLBX.MDP3";
+    bool confirmed = false;
+    for (int i = 5; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--confirm") {
+            confirmed = true;
+        } else {
+            dataset = arg;
+        }
+    }
 
     if (std::getenv("DATABENTO_API_KEY") == nullptr) {
         std::cerr << "DATABENTO_API_KEY is not set. export it in this shell, then rerun.\n";
@@ -37,7 +60,7 @@ int main(int argc, char* argv[])
         const std::uint64_t bytes = client.MetadataGetBillableSize(dataset, range, symbols, db::Schema::Mbo);
         const double cost = client.MetadataGetCost(dataset, range, symbols, db::Schema::Mbo);
 
-        std::cout << symbols.front() << " MBO " << range.start << " to " << range.end << " UTC\n"
+        std::cout << dataset << ' ' << argv[1] << " MBO " << range.start << " to " << range.end << " UTC\n"
                   << "records:       " << records << '\n'
                   << "billable size: " << std::fixed << std::setprecision(1)
                   << static_cast<double>(bytes) / 1e6 << " MB\n"

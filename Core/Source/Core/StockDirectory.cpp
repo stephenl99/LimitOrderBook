@@ -51,3 +51,8 @@ std::vector<uint16_t> StockDirectory::locates() const
     }
     return locates;
 }
+
+void StockDirectory::absorb(StockDirectory&& other)
+{
+    directory_.merge(other.directory_);
+}

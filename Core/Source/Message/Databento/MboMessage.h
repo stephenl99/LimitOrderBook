@@ -66,7 +66,7 @@ public:
     static constexpr size_t kSequence = 52;
 
 private:
-    static bool is_book_action(Action action);
+    static bool is_known_action(Action action);
 
     static uint16_t read_u16_le(std::span<const uint8_t> data, size_t offset);
     static uint32_t read_u32_le(std::span<const uint8_t> data, size_t offset);

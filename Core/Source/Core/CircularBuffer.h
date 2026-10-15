@@ -7,6 +7,8 @@
 #include <optional>
 #include <utility>
 
+inline constexpr std::size_t kCacheLineSize = 128;
+
 template <typename T>
 concept Usable = std::movable<T> && std::default_initializable<T>;
 
@@ -22,8 +24,11 @@ public:
     bool try_push(T&& value)
     {
         const std::size_t tail = tail_.load(std::memory_order_relaxed);
-        if (tail - head_.load(std::memory_order_acquire) == Capacity) {
-            return false;
+        if (tail - head_cache_ == Capacity) {
+            head_cache_ = head_.load(std::memory_order_acquire);
+            if (tail - head_cache_ == Capacity) {
+                return false;
+            }
         }
         slots_[tail & kMask] = std::move(value);
         tail_.store(tail + 1, std::memory_order_release);
@@ -33,12 +38,34 @@ public:
     std::optional<T> try_pop()
     {
         const std::size_t head = head_.load(std::memory_order_relaxed);
-        if (head == tail_.load(std::memory_order_acquire)) {
-            return std::nullopt;
+        if (head == tail_cache_) {
+            tail_cache_ = tail_.load(std::memory_order_acquire);
+            if (head == tail_cache_) {
+                return std::nullopt;
+            }
         }
         T value = std::move(slots_[head & kMask]);
         head_.store(head + 1, std::memory_order_release);
         return value;
+    }
+
+    template <std::invocable<T&> Consume>
+    std::size_t pop_batch(Consume&& consume, std::size_t max_items)
+    {
+        const std::size_t head = head_.load(std::memory_order_relaxed);
+        if (tail_cache_ - head < max_items) {
+            tail_cache_ = tail_.load(std::memory_order_acquire);
+        }
+        const std::size_t available = tail_cache_ - head;
+        const std::size_t count = available < max_items ? available : max_items;
+        for (std::size_t i = 0; i < count; ++i) {
+            T value = std::move(slots_[(head + i) & kMask]);
+            consume(value);
+        }
+        if (count != 0) {
+            head_.store(head + count, std::memory_order_release);
+        }
+        return count;
     }
 
     bool empty() const
@@ -50,9 +77,11 @@ public:
 
 private:
     static constexpr std::size_t kMask = Capacity - 1;
-    static constexpr std::size_t kCacheLine = 128;
+    static constexpr std::size_t kCacheLine = kCacheLineSize;
 
     std::unique_ptr<T[]> slots_ = std::make_unique<T[]>(Capacity);
-    alignas(kCacheLine) std::atomic<std::size_t> head_{0};
+    alignas(kCacheLine) std::atomic<std::size_t> head_{0}; // needed because of false sharing between head and tail.
+    std::size_t tail_cache_ = 0;
     alignas(kCacheLine) std::atomic<std::size_t> tail_{0};
+    std::size_t head_cache_ = 0;
 };

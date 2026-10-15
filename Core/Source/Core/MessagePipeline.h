@@ -10,8 +10,11 @@
 #include "CircularBuffer.h"
 #include "IdleStrategy.h"
 // invocable to make sure the handler can accept the message as an arg
-template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle>
+template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle,
+          std::size_t MaxBatch = 1>
 class MessagePipeline {
+    static_assert(MaxBatch >= 1 && MaxBatch <= Capacity, "MaxBatch must be between 1 and Capacity");
+
 public:
     explicit MessagePipeline(Handler handler)
         : handler_(std::move(handler)), consumer_([this] { consume(); })
@@ -44,9 +47,8 @@ private:
     void consume()
     {
         while (true) {
-            if (auto message = queue_.try_pop()) {
+            if (take()) {
                 consumer_idle_.reset();
-                handler_(*message);
             } else if (producer_done_.load(std::memory_order_acquire)) {
                 if (queue_.empty()) {
                     break;
@@ -57,16 +59,29 @@ private:
         }
     }
 
+    bool take()
+    {
+        if constexpr (MaxBatch == 1) {
+            if (auto message = queue_.try_pop()) {
+                handler_(*message);
+                return true;
+            }
+            return false;
+        } else {
+            return queue_.pop_batch(handler_, MaxBatch) != 0;
+        }
+    }
+
     CircularBuffer<Message, Capacity> queue_;
+    alignas(kCacheLineSize) Idle producer_idle_;
+    alignas(kCacheLineSize) Idle consumer_idle_;
     std::atomic<bool> producer_done_ = false;
-    Idle producer_idle_;
-    Idle consumer_idle_;
     Handler handler_;
     std::thread consumer_;
 };
 
-template <typename Message, std::size_t Capacity, typename Idle = YieldWhenIdle, typename Handler>
-MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle> make_pipeline(Handler&& handler)
+template <typename Message, std::size_t Capacity, typename Idle = YieldWhenIdle, std::size_t MaxBatch = 1, typename Handler>
+MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle, MaxBatch> make_pipeline(Handler&& handler)
 {
-    return MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle>(std::forward<Handler>(handler));
+    return MessagePipeline<Message, Capacity, std::decay_t<Handler>, Idle, MaxBatch>(std::forward<Handler>(handler));
 }

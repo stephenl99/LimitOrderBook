@@ -17,6 +17,7 @@ public:
     std::optional<std::string> lookup(uint16_t locate) const;
     std::string translate(uint16_t locate) const;
     std::vector<uint16_t> locates() const;
+    void absorb(StockDirectory&& other);
 
 private:
     std::unordered_map<uint16_t, std::string> directory_;

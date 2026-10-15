@@ -35,7 +35,7 @@ int64_t MboMessage::read_i64_le(std::span<const uint8_t> data, size_t offset)
     return static_cast<int64_t>(read_u64_le(data, offset));
 }
 
-bool MboMessage::is_book_action(Action action)
+bool MboMessage::is_known_action(Action action)
 {
     switch (action) {
     case Action::Add:
@@ -44,6 +44,7 @@ bool MboMessage::is_book_action(Action action)
     case Action::Trade:
     case Action::Fill:
     case Action::Clear:
+    case Action::None:
         return true;
     default:
         return false;
@@ -65,7 +66,7 @@ bool MboMessage::decode(std::span<const uint8_t> data)
         return false;
     }
     const auto action = static_cast<Action>(data[kAction]);
-    if (!is_book_action(action)) {
+    if (!is_known_action(action)) {
         return false;
     }
 

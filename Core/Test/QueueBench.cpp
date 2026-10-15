@@ -24,6 +24,13 @@
 #include "Core/CircularBuffer.h"
 #include "Core/IdleStrategy.h"
 #include "Core/Decoder.h"
+#include "Core/MappedFile.h"
+#include "Core/MessagePipeline.h"
+#include "Core/SequencedBuffer.h"
+#include "Core/ShardedDecoder.h"
+#include "Message/Itch/DecodeMessage.h"
+#include "Message/Itch/FrameReader.h"
+#include "Message/Itch/HandleMessage.h"
 
 namespace fs = std::filesystem;
 
@@ -111,7 +118,42 @@ private:
     bool done_ = false;
 };
 
-template <typename Idle>
+template <typename T, std::size_t Capacity>
+class UncachedIndexBuffer {
+public:
+    bool try_push(T&& value)
+    {
+        const std::size_t tail = tail_.load(std::memory_order_relaxed);
+        if (tail - head_.load(std::memory_order_acquire) == Capacity) {
+            return false;
+        }
+        slots_[tail & kMask] = std::move(value);
+        tail_.store(tail + 1, std::memory_order_release);
+        return true;
+    }
+
+    std::optional<T> try_pop()
+    {
+        const std::size_t head = head_.load(std::memory_order_relaxed);
+        if (head == tail_.load(std::memory_order_acquire)) {
+            return std::nullopt;
+        }
+        T value = std::move(slots_[head & kMask]);
+        head_.store(head + 1, std::memory_order_release);
+        return value;
+    }
+
+    bool empty() const { return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire); }
+
+private:
+    static constexpr std::size_t kMask = Capacity - 1;
+
+    std::unique_ptr<T[]> slots_ = std::make_unique<T[]>(Capacity);
+    alignas(kCacheLineSize) std::atomic<std::size_t> head_{0};
+    alignas(kCacheLineSize) std::atomic<std::size_t> tail_{0};
+};
+
+template <typename Idle, typename Buffer = CircularBuffer<std::int64_t, kRingCapacity>>
 class RingQueue {
 public:
     void push(std::int64_t value)
@@ -143,10 +185,136 @@ public:
     }
 
 private:
-    CircularBuffer<std::int64_t, kRingCapacity> ring_;
+    Buffer ring_;
+    alignas(kCacheLineSize) Idle push_idle_;
+    alignas(kCacheLineSize) Idle pop_idle_;
     std::atomic<bool> done_ = false;
-    Idle push_idle_;
-    Idle pop_idle_;
+};
+
+template <typename Idle, std::size_t Batch>
+class BatchRingQueue {
+public:
+    void push(std::int64_t value)
+    {
+        while (!ring_.try_push(std::move(value))) {
+            push_idle_.wait();
+        }
+        push_idle_.reset();
+    }
+
+    void close() { done_.store(true, std::memory_order_release); }
+
+    bool pop(std::int64_t& value)
+    {
+        while (true) {
+            if (cursor_ < count_) {
+                value = buffer_[cursor_++];
+                return true;
+            }
+            cursor_ = 0;
+            count_ = 0;
+            if (ring_.pop_batch([this](std::int64_t& item) { buffer_[count_++] = item; }, Batch) != 0) {
+                pop_idle_.reset();
+                continue;
+            }
+            if (done_.load(std::memory_order_acquire)) {
+                if (ring_.empty()) {
+                    return false;
+                }
+            } else {
+                pop_idle_.wait();
+            }
+        }
+    }
+
+private:
+    CircularBuffer<std::int64_t, kRingCapacity> ring_;
+    alignas(kCacheLineSize) Idle push_idle_;
+    alignas(kCacheLineSize) Idle pop_idle_;
+    std::atomic<bool> done_ = false;
+    std::array<std::int64_t, Batch> buffer_{};
+    std::size_t cursor_ = 0;
+    std::size_t count_ = 0;
+};
+
+template <typename T, std::size_t Capacity>
+class MpmcQueue {
+public:
+    MpmcQueue()
+    {
+        for (std::size_t i = 0; i < Capacity; ++i) {
+            cells_[i].sequence.store(i, std::memory_order_relaxed);
+        }
+    }
+
+    bool try_push(T value)
+    {
+        std::size_t pos = enqueue_pos_.load(std::memory_order_relaxed);
+        while (true) {
+            Cell& cell = cells_[pos & kMask];
+            const std::size_t sequence = cell.sequence.load(std::memory_order_acquire);
+            const auto diff = static_cast<std::intptr_t>(sequence) - static_cast<std::intptr_t>(pos);
+            if (diff == 0) {
+                if (enqueue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
+                    cell.value = value;
+                    cell.sequence.store(pos + 1, std::memory_order_release);
+                    return true;
+                }
+            } else if (diff < 0) {
+                return false;
+            } else {
+                pos = enqueue_pos_.load(std::memory_order_relaxed);
+            }
+        }
+    }
+
+    std::optional<T> try_pop()
+    {
+        T value;
+        if (try_pop(value)) {
+            return value;
+        }
+        return std::nullopt;
+    }
+
+    bool empty() const
+    {
+        const std::size_t pos = dequeue_pos_.load(std::memory_order_acquire);
+        return cells_[pos & kMask].sequence.load(std::memory_order_acquire) != pos + 1;
+    }
+
+    bool try_pop(T& value)
+    {
+        std::size_t pos = dequeue_pos_.load(std::memory_order_relaxed);
+        while (true) {
+            Cell& cell = cells_[pos & kMask];
+            const std::size_t sequence = cell.sequence.load(std::memory_order_acquire);
+            const auto diff = static_cast<std::intptr_t>(sequence) - static_cast<std::intptr_t>(pos + 1);
+            if (diff == 0) {
+                if (dequeue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
+                    value = cell.value;
+                    cell.sequence.store(pos + Capacity, std::memory_order_release);
+                    return true;
+                }
+            } else if (diff < 0) {
+                return false;
+            } else {
+                pos = dequeue_pos_.load(std::memory_order_relaxed);
+            }
+        }
+    }
+
+private:
+    static constexpr std::size_t kMask = Capacity - 1;
+
+    struct Cell {
+        std::atomic<std::size_t> sequence;
+        T value;
+    };
+
+    std::unique_ptr<Cell[]> cells_ = std::make_unique<Cell[]>(Capacity);
+    alignas(128) std::atomic<std::size_t> enqueue_pos_{0};
+    alignas(128) std::atomic<std::size_t> dequeue_pos_{0};
 };
 
 template <typename Queue>
@@ -208,6 +376,30 @@ PacedResult paced_latencies(std::int64_t items, std::int64_t interval_ns)
     return {std::move(latencies), 100.0 * cpu_ns / wall_ns};
 }
 
+const std::array<std::string, 3> kBatchImpls = {"backoff", "backoff_batch16", "backoff_batch256"};
+
+std::int64_t transfer_batched(const std::string& impl, std::int64_t items)
+{
+    if (impl == "backoff") {
+        return transfer<RingQueue<BackoffWhenIdle>>(items);
+    }
+    if (impl == "backoff_batch16") {
+        return transfer<BatchRingQueue<BackoffWhenIdle, 16>>(items);
+    }
+    return transfer<BatchRingQueue<BackoffWhenIdle, 256>>(items);
+}
+
+PacedResult paced_batched(const std::string& impl, std::int64_t items, std::int64_t interval_ns)
+{
+    if (impl == "backoff") {
+        return paced_latencies<RingQueue<BackoffWhenIdle>>(items, interval_ns);
+    }
+    if (impl == "backoff_batch16") {
+        return paced_latencies<BatchRingQueue<BackoffWhenIdle, 16>>(items, interval_ns);
+    }
+    return paced_latencies<BatchRingQueue<BackoffWhenIdle, 256>>(items, interval_ns);
+}
+
 const std::array<std::string, 4> kQueueImpls = {"mutex", "ring", "ring_spin", "ring_backoff"};
 
 std::int64_t transfer_with(const std::string& impl, std::int64_t items)
@@ -242,6 +434,74 @@ std::int64_t percentile(const std::vector<std::int64_t>& sorted, double p)
 {
     const auto index = static_cast<std::size_t>(p * static_cast<double>(sorted.size() - 1));
     return sorted[index];
+}
+
+const std::array<std::string, 4> kVariantImpls = {"uncached_index", "ring", "sequenced", "mpmc"};
+
+template <template <typename> class Run>
+auto with_variant(const std::string& impl)
+{
+    using Seq = SequencedBuffer<std::int64_t, kRingCapacity>;
+    using Uncached = UncachedIndexBuffer<std::int64_t, kRingCapacity>;
+    using Mpmc = MpmcQueue<std::int64_t, kRingCapacity>;
+    if (impl == "uncached_index") {
+        return Run<RingQueue<BackoffWhenIdle, Uncached>>{}();
+    }
+    if (impl == "sequenced") {
+        return Run<RingQueue<BackoffWhenIdle, Seq>>{}();
+    }
+    if (impl == "mpmc") {
+        return Run<RingQueue<BackoffWhenIdle, Mpmc>>{}();
+    }
+    return Run<RingQueue<BackoffWhenIdle>>{}();
+}
+
+std::int64_t g_items = 0;
+std::int64_t g_interval_ns = 0;
+
+template <typename Queue>
+struct FlatRun {
+    std::int64_t operator()() const { return transfer<Queue>(g_items); }
+};
+
+template <typename Queue>
+struct PacedRun {
+    PacedResult operator()() const { return paced_latencies<Queue>(g_items, g_interval_ns); }
+};
+
+int run_variants(int runs)
+{
+    constexpr std::int64_t kItems = 10'000'000;
+    g_items = kItems;
+    for (int run = 0; run < runs; ++run) {
+        for (std::size_t k = 0; k < kVariantImpls.size(); ++k) {
+            const std::string& impl = kVariantImpls[(run + k) % kVariantImpls.size()];
+            const auto start = Clock::now();
+            const std::int64_t sum = with_variant<FlatRun>(impl);
+            const double ms = elapsed_ms(start);
+            if (sum != kItems * (kItems - 1) / 2) {
+                std::cerr << "queue_bench: " << impl << " lost items\n";
+                return 1;
+            }
+            std::cout << "variant," << impl << ",flat," << run << ',' << static_cast<double>(kItems) / ms / 1000.0
+                      << ",,,,\n";
+        }
+    }
+    const std::array<std::int64_t, 3> rates = {1'000'000, 100'000, 10'000};
+    for (const std::int64_t rate : rates) {
+        g_items = static_cast<std::int64_t>(static_cast<double>(rate) * (rate >= 100'000 ? 0.5 : 1.0));
+        g_interval_ns = 1'000'000'000 / rate;
+        for (int run = 0; run < runs; ++run) {
+            for (std::size_t k = 0; k < kVariantImpls.size(); ++k) {
+                const std::string& impl = kVariantImpls[(run + k) % kVariantImpls.size()];
+                const auto result = with_variant<PacedRun>(impl);
+                std::cout << "variant," << impl << ',' << rate << ',' << run << ",," << percentile(result.sorted, 0.50)
+                          << ',' << percentile(result.sorted, 0.99) << ',' << percentile(result.sorted, 0.999) << ','
+                          << result.consumer_cpu_pct << '\n';
+            }
+        }
+    }
+    return 0;
 }
 
 int run_queue(std::int64_t items, int runs)
@@ -351,6 +611,218 @@ int run_sweep(int runs)
     return 0;
 }
 
+int run_batching(int runs)
+{
+    constexpr std::int64_t kItems = 5'000'000;
+    for (int run = 0; run < runs; ++run) {
+        for (std::size_t k = 0; k < kBatchImpls.size(); ++k) {
+            const std::string& impl = kBatchImpls[(run + k) % kBatchImpls.size()];
+            const auto start = Clock::now();
+            const std::int64_t sum = transfer_batched(impl, kItems);
+            const double ms = elapsed_ms(start);
+            if (sum != kItems * (kItems - 1) / 2) {
+                std::cerr << "queue_bench: " << impl << " lost items\n";
+                return 1;
+            }
+            std::cout << "batch," << impl << ",flat," << run << ',' << static_cast<double>(kItems) / ms / 1000.0
+                      << ",,,,\n";
+        }
+    }
+    const std::array<std::int64_t, 3> rates = {1'000'000, 100'000, 10'000};
+    for (const std::int64_t rate : rates) {
+        const auto items = static_cast<std::int64_t>(static_cast<double>(rate) * (rate >= 100'000 ? 0.5 : 1.0));
+        for (int run = 0; run < runs; ++run) {
+            for (std::size_t k = 0; k < kBatchImpls.size(); ++k) {
+                const std::string& impl = kBatchImpls[(run + k) % kBatchImpls.size()];
+                const auto result = paced_batched(impl, items, 1'000'000'000 / rate);
+                std::cout << "batch," << impl << ',' << rate << ',' << run << ",," << percentile(result.sorted, 0.50)
+                          << ',' << percentile(result.sorted, 0.99) << ',' << percentile(result.sorted, 0.999) << ','
+                          << result.consumer_cpu_pct << '\n';
+            }
+        }
+    }
+    return 0;
+}
+
+template <typename Buffer>
+double fanout_sharded(std::int64_t items, std::size_t consumers)
+{
+    std::vector<std::unique_ptr<RingQueue<BackoffWhenIdle, Buffer>>> rings;
+    for (std::size_t c = 0; c < consumers; ++c) {
+        rings.push_back(std::make_unique<RingQueue<BackoffWhenIdle, Buffer>>());
+    }
+    std::vector<std::int64_t> sums(consumers, 0);
+    const auto start = Clock::now();
+    std::vector<std::thread> threads;
+    for (std::size_t c = 0; c < consumers; ++c) {
+        threads.emplace_back([&, c] {
+            prefer_performance_cores();
+            std::int64_t sum = 0;
+            std::int64_t value;
+            while (rings[c]->pop(value)) {
+                sum += value;
+            }
+            sums[c] = sum;
+        });
+    }
+    for (std::int64_t i = 0; i < items; ++i) {
+        rings[static_cast<std::size_t>(i) % consumers]->push(i);
+    }
+    for (auto& ring : rings) {
+        ring->close();
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    const double ms = elapsed_ms(start);
+    std::int64_t total = 0;
+    for (const std::int64_t sum : sums) {
+        total += sum;
+    }
+    return total == items * (items - 1) / 2 ? static_cast<double>(items) / ms / 1000.0 : -1.0;
+}
+
+double fanout_mpmc(std::int64_t items, std::size_t consumers)
+{
+    MpmcQueue<std::int64_t, kRingCapacity> queue;
+    std::atomic<bool> done = false;
+    std::vector<std::int64_t> sums(consumers, 0);
+    const auto start = Clock::now();
+    std::vector<std::thread> threads;
+    for (std::size_t c = 0; c < consumers; ++c) {
+        threads.emplace_back([&, c] {
+            prefer_performance_cores();
+            BackoffWhenIdle idle;
+            std::int64_t sum = 0;
+            std::int64_t value;
+            while (true) {
+                if (queue.try_pop(value)) {
+                    sum += value;
+                    idle.reset();
+                } else if (done.load(std::memory_order_acquire)) {
+                    if (!queue.try_pop(value)) {
+                        break;
+                    }
+                    sum += value;
+                } else {
+                    idle.wait();
+                }
+            }
+            sums[c] = sum;
+        });
+    }
+    BackoffWhenIdle idle;
+    for (std::int64_t i = 0; i < items; ++i) {
+        while (!queue.try_push(i)) {
+            idle.wait();
+        }
+        idle.reset();
+    }
+    done.store(true, std::memory_order_release);
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    const double ms = elapsed_ms(start);
+    std::int64_t total = 0;
+    for (const std::int64_t sum : sums) {
+        total += sum;
+    }
+    return total == items * (items - 1) / 2 ? static_cast<double>(items) / ms / 1000.0 : -1.0;
+}
+
+int run_fanout(std::int64_t items, int runs)
+{
+    const std::array<std::size_t, 3> consumer_counts = {1, 2, 4};
+    for (const std::size_t consumers : consumer_counts) {
+        for (int run = 0; run < runs; ++run) {
+            const std::array<std::string, 4> impls = {"sharded_uncached", "sharded_spsc", "sharded_sequenced", "mpmc"};
+            for (std::size_t k = 0; k < impls.size(); ++k) {
+                const std::string& impl = impls[(run + k) % impls.size()];
+                double mps = 0;
+                if (impl == "sharded_uncached") {
+                    mps = fanout_sharded<UncachedIndexBuffer<std::int64_t, kRingCapacity>>(items, consumers);
+                } else if (impl == "sharded_spsc") {
+                    mps = fanout_sharded<CircularBuffer<std::int64_t, kRingCapacity>>(items, consumers);
+                } else if (impl == "sharded_sequenced") {
+                    mps = fanout_sharded<SequencedBuffer<std::int64_t, kRingCapacity>>(items, consumers);
+                } else {
+                    mps = fanout_mpmc(items, consumers);
+                }
+                if (mps < 0) {
+                    std::cerr << "queue_bench: fanout lost items\n";
+                    return 1;
+                }
+                std::cout << "fanout," << impl << ',' << consumers << ',' << run << ',' << mps << '\n';
+            }
+        }
+    }
+    return 0;
+}
+
+template <std::size_t MaxBatch>
+std::expected<std::unique_ptr<Book>, std::string> decode_ring_batched(const fs::path& path)
+{
+    const auto file = MappedFile::open(path);
+    if (!file) {
+        return std::unexpected(file.error());
+    }
+    auto book = std::make_unique<Book>();
+    auto pipeline = make_pipeline<std::unique_ptr<itch::Message>, kRingCapacity, YieldWhenIdle, MaxBatch>(
+        [&book](std::unique_ptr<itch::Message>& message) { itch::handle_message(message, book.get()); });
+    std::thread parse_thread([&] {
+        itch::FrameReader frames(file->bytes());
+        while (const auto frame = frames.next()) {
+            if (auto message = itch::decode_message(*frame)) {
+                pipeline.push(std::move(message));
+            }
+        }
+    });
+    parse_thread.join();
+    pipeline.finish();
+    return book;
+}
+
+int run_shards(const fs::path& path, int runs)
+{
+    const std::uint64_t frames = count_frames(path);
+    if (frames == 0) {
+        std::cerr << "queue_bench: cannot read " << path << '\n';
+        return 1;
+    }
+    const std::array<std::string, 7> impls = {"single", "ring", "ring_batch64", "sharded1", "sharded2", "sharded4", "sharded8"};
+    auto decode = [&](const std::string& impl) -> std::expected<std::unique_ptr<Book>, std::string> {
+        if (impl == "single") {
+            return SingleThreadDecoder::decode_file(path);
+        }
+        if (impl == "ring") {
+            return Decoder::decode_file(path);
+        }
+        if (impl == "ring_batch64") {
+            return decode_ring_batched<64>(path);
+        }
+        return ShardedDecoder::decode_file(path, std::stoul(impl.substr(7)));
+    };
+    for (const std::string& impl : impls) {
+        if (!decode(impl)) {
+            return 1;
+        }
+    }
+    for (int run = 0; run < runs; ++run) {
+        for (std::size_t k = 0; k < impls.size(); ++k) {
+            const std::string& impl = impls[(run + k) % impls.size()];
+            const auto start = Clock::now();
+            const auto result = decode(impl);
+            const double ms = elapsed_ms(start);
+            if (!result) {
+                std::cerr << "queue_bench: " << result.error() << '\n';
+                return 1;
+            }
+            std::cout << "shards," << impl << ',' << frames << ',' << run << ',' << ms << '\n';
+        }
+    }
+    return 0;
+}
+
 int run_decode(const fs::path& path, int runs)
 {
     const std::uint64_t frames = count_frames(path);
@@ -400,11 +872,23 @@ int main(int argc, char* argv[])
         prefer_performance_cores();
         return run_sweep(std::atoi(argv[2]));
     }
+    if (mode == "variants" && argc > 2) {
+        prefer_performance_cores();
+        return run_variants(std::atoi(argv[2]));
+    }
+    if (mode == "batching" && argc > 2) {
+        prefer_performance_cores();
+        return run_batching(std::atoi(argv[2]));
+    }
     if (argc < 4) {
         std::cerr << "usage: queue_bench queue <items> <runs>\n"
                   << "       queue_bench latency <msgs_per_sec> <runs> [seconds]\n"
                   << "       queue_bench decode <file.bin> <runs>\n"
-                  << "       queue_bench sweep <runs>\n";
+                  << "       queue_bench sweep <runs>\n"
+                  << "       queue_bench batching <runs>\n"
+                  << "       queue_bench variants <runs>\n"
+                  << "       queue_bench fanout <items> <runs>\n"
+                  << "       queue_bench shards <file.bin> <runs>\n";
         return 1;
     }
 
@@ -418,6 +902,12 @@ int main(int argc, char* argv[])
     }
     if (mode == "decode") {
         return run_decode(argv[2], runs);
+    }
+    if (mode == "fanout") {
+        return run_fanout(std::atoll(argv[2]), runs);
+    }
+    if (mode == "shards") {
+        return run_shards(argv[2], runs);
     }
     std::cerr << "queue_bench: unknown mode " << mode << '\n';
     return 1;

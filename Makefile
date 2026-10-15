@@ -134,6 +134,7 @@ live:
 	$(DEBUG_BIN)/databento_smoke $(LIVE_SYMBOL) $(LIVE_SECONDS) $(LIVE_DATASET)
 
 MBO_SYMBOL ?= ESZ6
+MBO_DATASET ?= GLBX.MDP3
 MBO_START ?= 2026-10-08T00:00
 MBO_END ?= 2026-10-08T01:00
 MBO_FILE ?= testdata/$(MBO_SYMBOL).mbo.dbn.zst
@@ -143,11 +144,11 @@ MBO_THREADING ?= single
 
 mbo_cost:
 	$(call cmake_build,debug,databento_download)
-	$(DEBUG_BIN)/databento_download $(MBO_SYMBOL) $(MBO_START) $(MBO_END) $(MBO_FILE)
+	$(DEBUG_BIN)/databento_download $(MBO_SYMBOL) $(MBO_START) $(MBO_END) $(MBO_FILE) $(MBO_DATASET)
 
 mbo_download:
 	$(call cmake_build,debug,databento_download)
-	$(DEBUG_BIN)/databento_download $(MBO_SYMBOL) $(MBO_START) $(MBO_END) $(MBO_FILE) --confirm
+	$(DEBUG_BIN)/databento_download $(MBO_SYMBOL) $(MBO_START) $(MBO_END) $(MBO_FILE) $(MBO_DATASET) --confirm
 
 replay:
 	$(call cmake_build,release,databento_replay)

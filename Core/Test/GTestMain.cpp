@@ -1,5 +1,7 @@
 #include "Core/Book.h"
+#include "Baseline/SingleThreadDecoder.h"
 #include "Core/Decoder.h"
+#include "Core/ShardedDecoder.h"
 #include "Core/StockDirectory.h"
 #include "Message/Itch/AddOrderMessage.h"
 #include "Message/Itch/DecodeMessage.h"
@@ -323,4 +325,25 @@ TEST(Decoder, TinyAddFixture)
     EXPECT_EQ((*book)->bid_levels.size(), 1u);
     EXPECT_EQ((*book)->ask_levels.size(), 0u);
     EXPECT_EQ(resting_quantity(**book, 12345), 100u);
+}
+
+TEST(ShardedDecoder, MatchesSingleThreadOnEveryShardCount)
+{
+    const auto path = fixture("session_mix.bin");
+    auto expected = SingleThreadDecoder::decode_file(path);
+    ASSERT_TRUE(expected.has_value()) << expected.error();
+    for (std::size_t shards : {1u, 2u, 3u, 8u}) {
+        auto result = ShardedDecoder::decode_file(path, shards);
+        ASSERT_TRUE(result.has_value()) << result.error();
+        EXPECT_EQ((*result)->security_locates().size(), (*expected)->security_locates().size()) << shards;
+        for (const InstrumentId locate : (*expected)->security_locates()) {
+            const auto want = (*expected)->find(locate);
+            const auto got = (*result)->find(locate);
+            ASSERT_TRUE(got.has_value()) << "locate " << locate << " shards " << shards;
+            EXPECT_EQ((*got)->order_mapping.size(), (*want)->order_mapping.size());
+            EXPECT_EQ(depth_snapshot((*got)->bid_levels, 100).size(), depth_snapshot((*want)->bid_levels, 100).size());
+            EXPECT_EQ(depth_snapshot((*got)->ask_levels, 100).size(), depth_snapshot((*want)->ask_levels, 100).size());
+        }
+        EXPECT_EQ((*result)->directory.lookup(1), (*expected)->directory.lookup(1)) << shards;
+    }
 }

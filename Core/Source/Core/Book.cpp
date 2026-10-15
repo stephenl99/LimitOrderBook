@@ -33,3 +33,12 @@ std::vector<InstrumentId> Book::security_locates() const
     }
     return locates;
 }
+
+void Book::absorb(Book&& other)
+{
+    for (auto& [locate, security_book] : other.security_books) {
+        security_books[locate] = std::move(security_book);
+    }
+    other.security_books.clear();
+    directory.absorb(std::move(other.directory));
+}

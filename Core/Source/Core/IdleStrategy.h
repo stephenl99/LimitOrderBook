@@ -60,7 +60,12 @@ public:
         ++attempts_;
     }
 
-    void reset() { attempts_ = 0; }
+    void reset()
+    {
+        if (attempts_ != 0) {
+            attempts_ = 0;
+        }
+    }
 
 private:
     static constexpr std::chrono::microseconds kSleep{20};
@@ -69,7 +74,7 @@ private:
 };
 
 using SpinWhenIdle = BasicSpin<>;
-using LowLatencyBackoff = BasicBackoff<2000, 20000>;
-using BalancedBackoff = BasicBackoff<2000, 2000>;
-using LowCpuBackoff = BasicBackoff<2000, 64>;
+using LowLatencyBackoff = BasicBackoff<16000, 20000>;
+using BalancedBackoff = BasicBackoff<256, 2000, PauseKind::Isb>;
+using LowCpuBackoff = BasicBackoff<0, 64>;
 using BackoffWhenIdle = BalancedBackoff;
