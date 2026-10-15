@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include "Book.h"
+#include "Book/Book.h"
 
 namespace ShardedDecoder {
     std::expected<std::unique_ptr<Book>, std::string> decode_file(const std::filesystem::path& input_path, std::size_t shards);

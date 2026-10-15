@@ -11,10 +11,10 @@
 #include <sstream>
 #include <vector>
 
-#include "Book.h"
-#include "Order.h"
-#include "SecurityBook.h"
-#include "StockDirectory.h"
+#include "Book/Book.h"
+#include "Book/Order.h"
+#include "Book/SecurityBook.h"
+#include "Book/StockDirectory.h"
 
 namespace {
 

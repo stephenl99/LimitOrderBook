@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-#include "Core/Book.h"
+#include "Book/Book.h"
 #include "Core/MessagePipeline.h"
 #include "Message/Databento/HandleMessage.h"
 

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Core/Book.h"
+#include "Book/Book.h"
 #include "Message/Itch/Message.h"
 
 namespace itch {

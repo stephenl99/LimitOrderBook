@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Book.h"
+#include "Book/Book.h"
 #include "Message/Databento/MboMessage.h"
 
 namespace mbo {

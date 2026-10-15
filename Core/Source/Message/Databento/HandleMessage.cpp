@@ -1,6 +1,6 @@
 #include "Message/Databento/HandleMessage.h"
 
-#include "Core/Order.h"
+#include "Book/Order.h"
 #include "Message/Databento/MboMessage.h"
 
 namespace mbo {

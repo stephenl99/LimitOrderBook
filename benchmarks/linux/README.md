@@ -139,7 +139,7 @@ Cycle counter around every operation, including `book_for` and the BBO read. ns,
   every miss or insert walks it. The CME hour showed the start of this; a deep book makes it a tail-latency problem.
   Drop it, or use a real mixing hash.
 - **Keeping the full queue costs nothing measurable.** `pooled-ladder` keeps every order in time priority, like
-  `tree`, yet matches or beats the aggregate `ladder` in 6 of 8 scenarios and has the lowest p99 in `equity`. The
+  `tree`, yet beats the aggregate `ladder` in 7 of 8 scenarios (by 2 to 6 ns) and has the lowest p99 in `equity`. The
   aggregate design isn't needed for speed: pooled nodes, index links and a flat index get the same result while
   keeping order-by-order depth.
 - **Where pooled loses: `multi` (116 vs 107) and the deep tails (p99 309 vs 189).** The order nodes are a second

@@ -9,9 +9,9 @@
 #include <vector>
 
 #include "BookVariants/PooledBook.h"
-#include "Core/AggregateSecurityBook.h"
-#include "Core/Book.h"
-#include "Core/SecurityBook.h"
+#include "Book/AggregateSecurityBook.h"
+#include "Book/Book.h"
+#include "Book/SecurityBook.h"
 
 template <typename S>
 concept BenchSecurityBook = requires(S book, const S& view, std::uint64_t ref, Side side, Price price, std::uint32_t quantity) {

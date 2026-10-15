@@ -9,9 +9,9 @@
 #include <optional>
 #include <vector>
 
-#include "Core/Level.h"
-#include "Core/LevelSearch.h"
-#include "Core/Order.h"
+#include "Book/Level.h"
+#include "Book/LevelSearch.h"
+#include "Book/Order.h"
 
 namespace pooled {
 
