@@ -144,6 +144,38 @@ On the real ESZ6 replay back-off and yield are level on throughput (14.7 vs 14.9
 tighter spread), so the Databento pipeline (`MboSession`, used for replay and live) uses back-off and the ITCH file
 decoder keeps the default, yield.
 
+### Tuning the back-off
+
+`make backoff_sweep` (~5 min): spin attempts {0, 32, 256, 2000, 16000} x yield attempts {0, 64, 2000, 20000}, plus
+pure yield, pure spin and the `isb` pause, 3 runs each, five scenarios (flat out, paced at 1M / 100k / 10k / 1k
+msgs/s). Also records the consumer thread's CPU time. Results in `backoff_sweep.csv`, `backoff_sweep_summary.csv`:
+
+![back-off sweep](backoff_sweep.png)
+
+- **yield attempts decide whether it ever sleeps.** 2000 yields take roughly a third of a ms. With 20000 the
+  consumer never sleeps at 1k msgs/s (median 208 ns, 99% CPU); with 2000 or fewer it does (median 14 µs, 6–30% CPU).
+- **spin attempts decide latency at high rates.** At 1M msgs/s a message arrives every 1 µs; with ≥2000 spins the
+  consumer is still spinning when it lands (83–125 ns), with fewer it's already yielding (167 ns).
+- **throughput needs a yield stage.** Pure spin 23 M/s, pure spin with `isb` 14 M/s, any back-off with ≥64 yields
+  51–78 M/s. Differences inside that band are noise.
+- **only sleeping saves CPU.** Anything that doesn't reach the sleep stage at a given rate sits at ~99% of a core,
+  plain `yield()` included — it returns immediately when nothing else wants the core.
+
+Profiles in `IdleStrategy.h`: `LowLatencyBackoff` (2000/20000), `BalancedBackoff` (2000/2000, the default),
+`LowCpuBackoff` (2000/64).
+
+Where back-off loses: at 1k msgs/s the mutex has a 7.5 µs median at 0.3% CPU; balanced back-off has 14 µs at 30%.
+Its last stage naps for 20 µs and polls, where the condition variable actually blocks until notified. The fix is to
+block in the last stage too (`std::atomic::wait` on the counter, producer notifies only when the consumer says it's
+asleep). Not built yet.
+
+### The pause instruction
+
+`__builtin_arm_yield()` is the ARM `yield` hint, meant for cores that share a pipeline between two hardware threads.
+Apple's cores don't, and it measures ~0.3 ns here — same as an empty loop. It doesn't touch the cache and doesn't
+delay anything, so "spin" above is a hard spin. `isb` (`__builtin_arm_isb(15)`) costs ~9.3 ns and is a real delay,
+but it made pure spinning slower, not faster. Measured with a 200M-iteration loop of each.
+
 ## Real data
 
 One hour of CME ESZ6 MBO from Databento (163,149 records), replayed single-threaded with `make replay`, zstd

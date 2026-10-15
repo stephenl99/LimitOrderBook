@@ -5,10 +5,20 @@
 #include <cstdint>
 #include <thread>
 
+enum class PauseKind {
+    Yield,
+    Isb,
+};
+
+template <PauseKind Kind = PauseKind::Yield>
 inline void cpu_pause()
 {
 #if defined(__aarch64__)
-    __builtin_arm_yield();
+    if constexpr (Kind == PauseKind::Isb) {
+        __builtin_arm_isb(15);
+    } else {
+        __builtin_arm_yield();
+    }
 #elif defined(__x86_64__)
     __builtin_ia32_pause();
 #endif
@@ -25,17 +35,22 @@ struct YieldWhenIdle {
     void reset() {}
 };
 
-struct SpinWhenIdle {
-    void wait() { cpu_pause(); }
+template <PauseKind Kind = PauseKind::Yield>
+struct BasicSpin {
+    void wait() { cpu_pause<Kind>(); }
     void reset() {}
 };
 
-class BackoffWhenIdle {
+template <std::uint32_t SpinAttempts, std::uint32_t YieldAttempts, PauseKind Kind = PauseKind::Yield>
+class BasicBackoff {
 public:
+    static constexpr std::uint32_t kSpinAttempts = SpinAttempts;
+    static constexpr std::uint32_t kYieldAttempts = YieldAttempts;
+
     void wait()
     {
         if (attempts_ < kSpinAttempts) {
-            cpu_pause();
+            cpu_pause<Kind>();
         } else if (attempts_ < kSpinAttempts + kYieldAttempts) {
             std::this_thread::yield();
         } else {
@@ -48,9 +63,13 @@ public:
     void reset() { attempts_ = 0; }
 
 private:
-    static constexpr std::uint32_t kSpinAttempts = 2000;
-    static constexpr std::uint32_t kYieldAttempts = 2000;
     static constexpr std::chrono::microseconds kSleep{20};
 
     std::uint32_t attempts_ = 0;
 };
+
+using SpinWhenIdle = BasicSpin<>;
+using LowLatencyBackoff = BasicBackoff<2000, 20000>;
+using BalancedBackoff = BasicBackoff<2000, 2000>;
+using LowCpuBackoff = BasicBackoff<2000, 64>;
+using BackoffWhenIdle = BalancedBackoff;

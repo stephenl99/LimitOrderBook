@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -37,6 +38,13 @@ void prefer_performance_cores()
 #ifdef __APPLE__
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
+}
+
+double thread_cpu_ns()
+{
+    timespec ts{};
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+    return static_cast<double>(ts.tv_sec) * 1e9 + static_cast<double>(ts.tv_nsec);
 }
 
 std::int64_t now_ns()
@@ -163,8 +171,13 @@ std::int64_t transfer(std::int64_t items)
     return sum;
 }
 
+struct PacedResult {
+    std::vector<std::int64_t> sorted;
+    double consumer_cpu_pct;
+};
+
 template <typename Queue>
-std::vector<std::int64_t> paced_latencies(std::int64_t items, std::int64_t interval_ns)
+PacedResult paced_latencies(std::int64_t items, std::int64_t interval_ns)
 {
     Queue queue;
     std::vector<std::int64_t> latencies;
@@ -182,13 +195,17 @@ std::vector<std::int64_t> paced_latencies(std::int64_t items, std::int64_t inter
         queue.close();
     });
 
+    const auto wall_start = Clock::now();
+    const double cpu_start = thread_cpu_ns();
     std::int64_t scheduled;
     while (queue.pop(scheduled)) {
         latencies.push_back(now_ns() - scheduled);
     }
+    const double cpu_ns = thread_cpu_ns() - cpu_start;
+    const double wall_ns = std::chrono::duration<double, std::nano>(Clock::now() - wall_start).count();
     producer.join();
     std::sort(latencies.begin(), latencies.end());
-    return latencies;
+    return {std::move(latencies), 100.0 * cpu_ns / wall_ns};
 }
 
 const std::array<std::string, 4> kQueueImpls = {"mutex", "ring", "ring_spin", "ring_backoff"};
@@ -207,7 +224,7 @@ std::int64_t transfer_with(const std::string& impl, std::int64_t items)
     return transfer<RingQueue<BackoffWhenIdle>>(items);
 }
 
-std::vector<std::int64_t> paced_latencies_with(const std::string& impl, std::int64_t items, std::int64_t interval_ns)
+PacedResult paced_latencies_with(const std::string& impl, std::int64_t items, std::int64_t interval_ns)
 {
     if (impl == "mutex") {
         return paced_latencies<MutexQueue>(items, interval_ns);
@@ -261,12 +278,76 @@ int run_latency(std::int64_t rate_per_sec, double seconds, int runs)
     for (int run = 0; run < runs; ++run) {
         for (std::size_t k = 0; k < kQueueImpls.size(); ++k) {
             const std::string& impl = kQueueImpls[(run + k) % kQueueImpls.size()];
-            const auto sorted = paced_latencies_with(impl, items, interval_ns);
+            const auto result = paced_latencies_with(impl, items, interval_ns);
             std::cout << "latency," << impl << ',' << rate_per_sec << ',' << run << ','
-                      << percentile(sorted, 0.50) << ',' << percentile(sorted, 0.99) << ','
-                      << percentile(sorted, 0.999) << ',' << sorted.back() << '\n';
+                      << percentile(result.sorted, 0.50) << ',' << percentile(result.sorted, 0.99) << ','
+                      << percentile(result.sorted, 0.999) << ',' << result.sorted.back() << ','
+                      << result.consumer_cpu_pct << '\n';
         }
     }
+    return 0;
+}
+
+constexpr const char* pause_name(PauseKind kind)
+{
+    return kind == PauseKind::Isb ? "isb" : "yield";
+}
+
+double sweep_seconds(std::int64_t rate)
+{
+    if (rate >= 100'000) {
+        return 0.5;
+    }
+    return rate >= 10'000 ? 1.0 : 2.0;
+}
+
+template <typename Idle>
+void sweep_one(const char* policy, const char* pause, std::int64_t spin, std::int64_t yield, int runs)
+{
+    using Queue = RingQueue<Idle>;
+    constexpr std::int64_t kFlatItems = 5'000'000;
+    const std::array<std::int64_t, 4> rates = {1'000'000, 100'000, 10'000, 1'000};
+    const auto prefix = [&] {
+        std::cout << policy << ',' << pause << ',' << spin << ',' << yield << ',';
+    };
+
+    for (int run = 0; run < runs; ++run) {
+        const auto start = Clock::now();
+        transfer<Queue>(kFlatItems);
+        const double ms = elapsed_ms(start);
+        prefix();
+        std::cout << "flat," << run << ',' << static_cast<double>(kFlatItems) / ms / 1000.0 << ",,,,\n";
+    }
+    for (const std::int64_t rate : rates) {
+        const auto items = static_cast<std::int64_t>(static_cast<double>(rate) * sweep_seconds(rate));
+        for (int run = 0; run < runs; ++run) {
+            const auto result = paced_latencies<Queue>(items, 1'000'000'000 / rate);
+            prefix();
+            std::cout << rate << ',' << run << ",," << percentile(result.sorted, 0.50) << ','
+                      << percentile(result.sorted, 0.99) << ',' << percentile(result.sorted, 0.999) << ','
+                      << result.consumer_cpu_pct << '\n';
+        }
+    }
+    std::cout.flush();
+}
+
+template <PauseKind Kind, std::uint32_t Yield, std::uint32_t... Spins>
+void sweep_row(int runs)
+{
+    (sweep_one<BasicBackoff<Spins, Yield, Kind>>("backoff", pause_name(Kind), Spins, Yield, runs), ...);
+}
+
+int run_sweep(int runs)
+{
+    std::cout << "policy,pause,spin,yield,scenario,run,throughput_mps,p50_ns,p99_ns,p999_ns,consumer_cpu_pct\n";
+    sweep_one<YieldWhenIdle>("yield", "none", 0, -1, runs);
+    sweep_one<BasicSpin<PauseKind::Yield>>("spin", "yield", -1, 0, runs);
+    sweep_one<BasicSpin<PauseKind::Isb>>("spin", "isb", -1, 0, runs);
+    sweep_row<PauseKind::Yield, 0, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<PauseKind::Yield, 64, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<PauseKind::Yield, 2000, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<PauseKind::Yield, 20000, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<PauseKind::Isb, 2000, 32, 256, 2000>(runs);
     return 0;
 }
 
@@ -314,15 +395,20 @@ int run_decode(const fs::path& path, int runs)
 
 int main(int argc, char* argv[])
 {
+    const std::string mode = argc > 1 ? argv[1] : "";
+    if (mode == "sweep" && argc > 2) {
+        prefer_performance_cores();
+        return run_sweep(std::atoi(argv[2]));
+    }
     if (argc < 4) {
         std::cerr << "usage: queue_bench queue <items> <runs>\n"
                   << "       queue_bench latency <msgs_per_sec> <runs> [seconds]\n"
-                  << "       queue_bench decode <file.bin> <runs>\n";
+                  << "       queue_bench decode <file.bin> <runs>\n"
+                  << "       queue_bench sweep <runs>\n";
         return 1;
     }
 
     prefer_performance_cores();
-    const std::string mode = argv[1];
     const int runs = std::atoi(argv[3]);
     if (mode == "queue") {
         return run_queue(std::atoll(argv[2]), runs);

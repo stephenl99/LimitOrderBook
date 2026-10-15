@@ -112,9 +112,18 @@ queue_report: $(QUEUE_FIXTURES) $(VENV)/bin/python
 	echo "bench,impl,size,run,ms" > $(QUEUE_CSV)
 	$(QUEUE_BENCH) queue $(QUEUE_ITEMS) $(QUEUE_RUNS) >> $(QUEUE_CSV)
 	for f in $(QUEUE_FIXTURES); do $(QUEUE_BENCH) decode $$f $(QUEUE_RUNS) >> $(QUEUE_CSV); done
-	echo "bench,impl,rate,run,p50_ns,p99_ns,p999_ns,max_ns" > $(LATENCY_CSV)
+	echo "bench,impl,rate,run,p50_ns,p99_ns,p999_ns,max_ns,consumer_cpu_pct" > $(LATENCY_CSV)
 	for r in $(LATENCY_RATES); do $(QUEUE_BENCH) latency $$r $(LATENCY_RUNS) >> $(LATENCY_CSV); done
 	$(VENV)/bin/python tools/plot_queue_bench.py $(QUEUE_CSV) $(LATENCY_CSV) benchmarks
+
+SWEEP_RUNS ?= 3
+SWEEP_CSV := benchmarks/backoff_sweep.csv
+
+backoff_sweep: $(VENV)/bin/python
+	$(call cmake_build,release,queue_bench)
+	@mkdir -p benchmarks
+	$(QUEUE_BENCH) sweep $(SWEEP_RUNS) > $(SWEEP_CSV)
+	$(VENV)/bin/python tools/plot_backoff_sweep.py $(SWEEP_CSV) benchmarks
 
 LIVE_SYMBOL ?= ESZ6
 LIVE_SECONDS ?= 15
