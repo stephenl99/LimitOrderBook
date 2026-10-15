@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "AggregateLevels.h"
@@ -51,6 +52,8 @@ public:
     std::size_t resting_orders() const { return orders_.size(); }
     std::size_t bid_level_count() const { return bid_levels_.size(); }
     std::size_t ask_level_count() const { return ask_levels_.size(); }
+    std::optional<Price> best_bid() const { return bid_levels_.best(); }
+    std::optional<Price> best_ask() const { return ask_levels_.best(); }
     std::vector<LevelSummary> bid_depth(std::size_t levels) const { return bid_levels_.depth(levels); }
     std::vector<LevelSummary> ask_depth(std::size_t levels) const { return ask_levels_.depth(levels); }
 

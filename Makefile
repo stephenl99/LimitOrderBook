@@ -12,7 +12,7 @@ DEBUG_BIN := $(BUILD_ROOT)/debug
 RELEASE_BIN := $(BUILD_ROOT)/release
 VENV := .venv
 
-BINARIES := core_test itch_dump bench queue_bench unit_tests verify_mbo_offsets \
+BINARIES := core_test itch_dump bench queue_bench book_bench unit_tests verify_mbo_offsets \
 	databento_smoke databento_replay databento_download
 
 define cmake_build
@@ -21,7 +21,7 @@ define cmake_build
 endef
 
 .PHONY: all clean test compile_commands $(BINARIES) debug asan tsan perf profile profile_text queue_report \
-	live mbo_cost mbo_download replay replay_live replay_compare replay_matrix book_plots
+	live mbo_cost mbo_download replay replay_live replay_compare replay_matrix book_plots book_report linux_queue_report
 
 all:
 	$(call cmake_build,$(PRESET),all)
@@ -66,7 +66,7 @@ $(PERF_FIXTURE):
 
 perf: $(PERF_FIXTURE)
 	$(call cmake_build,release,bench)
-	/usr/bin/time -l $(RELEASE_BIN)/bench $(PERF_REPEATS) $(PERF_FIXTURE)
+	/usr/bin/time $(if $(filter Darwin,$(shell uname)),-l,-v) $(RELEASE_BIN)/bench $(PERF_REPEATS) $(PERF_FIXTURE)
 
 PROFILE_TARGET ?= bench
 PROFILE_FIXTURE ?= testdata/queue_1000000.bin
@@ -115,6 +115,15 @@ queue_report: $(QUEUE_FIXTURES) $(VENV)/bin/python
 	echo "bench,impl,rate,run,p50_ns,p99_ns,p999_ns,max_ns,consumer_cpu_pct" > $(LATENCY_CSV)
 	for r in $(LATENCY_RATES); do $(QUEUE_BENCH) latency $$r $(LATENCY_RUNS) >> $(LATENCY_CSV); done
 	$(VENV)/bin/python tools/plot_queue_bench.py $(QUEUE_CSV) $(LATENCY_CSV) benchmarks
+
+BOOK_ARGS ?=
+QUEUE_ARGS ?=
+
+book_report:
+	tools/linux/book_bench.sh $(BOOK_ARGS)
+
+linux_queue_report:
+	tools/linux/queue_bench.sh $(QUEUE_ARGS)
 
 SWEEP_RUNS ?= 3
 SWEEP_CSV := benchmarks/backoff_sweep.csv

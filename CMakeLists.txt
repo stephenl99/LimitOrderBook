@@ -41,6 +41,7 @@ endfunction()
 lob_executable(core_test Core/Test/Main.cpp)
 lob_executable(bench Core/Test/BenchMain.cpp)
 lob_executable(queue_bench Core/Test/QueueBench.cpp)
+lob_executable(book_bench Core/Test/BookBench.cpp)
 lob_executable(itch_dump App/Source/ItchDump.cpp)
 
 if(LOB_BUILD_DATABENTO)

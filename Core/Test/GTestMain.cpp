@@ -1,3 +1,5 @@
+#include "BookVariants/BookVariants.h"
+#include "BookVariants/OrderFlow.h"
 #include "Core/Book.h"
 #include "Baseline/SingleThreadDecoder.h"
 #include "Core/Decoder.h"
@@ -583,4 +585,91 @@ TEST(PriceLadder, RefinesTickAndGrowsBothWays)
     EXPECT_EQ(as_pairs(asks.depth(100)), ask_expected);
     EXPECT_EQ(bids.size(), bid_expected.size());
     EXPECT_EQ(asks.size(), ask_expected.size());
+}
+
+namespace {
+
+template <typename S>
+void apply_flow_op(S& book, const BookOp& op)
+{
+    switch (op.type) {
+    case BookOpType::Add:
+        book.add_order(op.ref, op.side, op.price, op.quantity);
+        break;
+    case BookOpType::Execute:
+        book.execute_order(op.ref, op.quantity);
+        break;
+    case BookOpType::Cancel:
+        book.cancel_order(op.ref, op.quantity);
+        break;
+    case BookOpType::Delete:
+        book.delete_order(op.ref);
+        break;
+    case BookOpType::Replace:
+        book.replace_order(op.ref, op.new_ref, op.price, op.quantity);
+        break;
+    }
+}
+
+}  // namespace
+
+TEST(BookVariants, EveryVariantMatchesTreeOnGeneratedFlow)
+{
+    for (const bool random_ids : {false, true}) {
+        FlowConfig config;
+        config.ops = 60'000;
+        config.instruments = 3;
+        config.resting_per_instrument = 300;
+        config.far_fraction = 0.05;
+        config.far_ticks = 3000;
+        config.move_probability = 0.05;
+        config.random_ids = random_ids;
+        const OrderFlow flow = generate_order_flow(config);
+
+        for_each_book_variant([&]<typename B>(std::type_identity<B>, const BookVariantInfo& info) {
+            Book expected;
+            B candidate;
+            for (std::size_t i = 0; i < flow.ops.size(); ++i) {
+                const BookOp& op = flow.ops[i];
+                auto& want = expected.book_for(op.instrument);
+                auto& got = candidate.book_for(op.instrument);
+                apply_flow_op(want, op);
+                apply_flow_op(got, op);
+                ASSERT_EQ(got.best_bid(), want.best_bid()) << info.name << " op " << i;
+                ASSERT_EQ(got.best_ask(), want.best_ask()) << info.name << " op " << i;
+                if (i % 5'000 != 0) {
+                    continue;
+                }
+                for (InstrumentId instrument = 0; instrument < config.instruments; ++instrument) {
+                    const auto& a = candidate.book_for(instrument);
+                    const auto& b = expected.book_for(instrument);
+                    ASSERT_EQ(a.resting_orders(), b.resting_orders()) << info.name << " op " << i;
+                    ASSERT_EQ(as_pairs(a.bid_depth(SIZE_MAX)), as_pairs(b.bid_depth(SIZE_MAX))) << info.name << " op " << i;
+                    ASSERT_EQ(as_pairs(a.ask_depth(SIZE_MAX)), as_pairs(b.ask_depth(SIZE_MAX))) << info.name << " op " << i;
+                }
+            }
+        });
+    }
+}
+
+TEST(BookVariants, PooledSlotIndexMatchesUnorderedMap)
+{
+    pooled::SlotIndex index;
+    std::unordered_map<std::uint64_t, std::uint32_t> expected;
+    std::mt19937_64 rng(7);
+    std::uniform_int_distribution<std::uint64_t> key(0, 4'000);
+    for (std::uint32_t i = 0; i < 400'000; ++i) {
+        const std::uint64_t ref = key(rng) * 1024;
+        if (rng() % 3 == 0) {
+            index.erase(ref);
+            expected.erase(ref);
+        } else {
+            index.insert(ref, i);
+            expected[ref] = i;
+        }
+        ASSERT_EQ(index.size(), expected.size());
+        const std::uint64_t probe = key(rng) * 1024;
+        const auto it = expected.find(probe);
+        ASSERT_EQ(index.find(probe), it == expected.end() ? pooled::kNoSlot : it->second);
+    }
 }

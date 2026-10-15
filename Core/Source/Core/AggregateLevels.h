@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -55,6 +56,14 @@ public:
     std::size_t size() const { return entries_.size(); }
     bool empty() const { return entries_.empty(); }
     void clear() { entries_.clear(); }
+
+    std::optional<Price> best() const
+    {
+        if (entries_.empty()) {
+            return std::nullopt;
+        }
+        return entries_.back().price;
+    }
 
     std::vector<LevelSummary> depth(std::size_t levels) const
     {
@@ -117,6 +126,14 @@ public:
 
     std::size_t size() const { return levels_; }
     bool empty() const { return levels_ == 0; }
+
+    std::optional<Price> best() const
+    {
+        if (best_ < 0) {
+            return std::nullopt;
+        }
+        return price_at(best_);
+    }
 
     void clear()
     {

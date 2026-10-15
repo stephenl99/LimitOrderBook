@@ -60,6 +60,11 @@ public:
     std::pmr::unordered_map<uint64_t, OrderIterator> order_mapping{&pool_};
     void insert(const Order& order);
 
+    void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity)
+    {
+        insert(Order(0, stock_locate_, order_reference_number, side == Side::BID ? 'B' : 'S', price, quantity));
+    }
+
     void delete_order(uint64_t order_reference_number);
 
     void execute_order(uint64_t order_reference_number, uint32_t executed_shares);
@@ -78,6 +83,8 @@ public:
     std::size_t resting_orders() const { return order_mapping.size(); }
     std::size_t bid_level_count() const { return bid_levels.size(); }
     std::size_t ask_level_count() const { return ask_levels.size(); }
+    std::optional<Price> best_bid() const;
+    std::optional<Price> best_ask() const;
     std::vector<LevelSummary> bid_depth(std::size_t levels) const;
     std::vector<LevelSummary> ask_depth(std::size_t levels) const;
 

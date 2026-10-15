@@ -66,6 +66,51 @@ private:
     std::array<CacheSlot, (InstrumentCacheSlots == 0 ? 1 : InstrumentCacheSlots)> cache_{};
 };
 
+template <typename SecurityBookType, std::size_t InstrumentCacheSlots>
+SecurityBookType& BasicBook<SecurityBookType, InstrumentCacheSlots>::find_or_create(InstrumentId stock_locate)
+{
+    auto& slot = security_books[stock_locate];
+    if (!slot) {
+        slot = std::make_unique<SecurityBookType>(stock_locate);
+    }
+    return *slot;
+}
+
+template <typename SecurityBookType, std::size_t InstrumentCacheSlots>
+std::optional<SecurityBookType*> BasicBook<SecurityBookType, InstrumentCacheSlots>::find(InstrumentId stock_locate) const
+{
+    const auto it = security_books.find(stock_locate);
+    if (it == security_books.end() || !it->second) {
+        return {};
+    }
+    return it->second.get();
+}
+
+template <typename SecurityBookType, std::size_t InstrumentCacheSlots>
+std::vector<InstrumentId> BasicBook<SecurityBookType, InstrumentCacheSlots>::security_locates() const
+{
+    std::vector<InstrumentId> locates;
+    locates.reserve(security_books.size());
+    for (const auto& entry : security_books) {
+        if (entry.second) {
+            locates.push_back(entry.first);
+        }
+    }
+    return locates;
+}
+
+template <typename SecurityBookType, std::size_t InstrumentCacheSlots>
+void BasicBook<SecurityBookType, InstrumentCacheSlots>::absorb(BasicBook&& other)
+{
+    for (auto& [locate, security_book] : other.security_books) {
+        security_books[locate] = std::move(security_book);
+    }
+    other.security_books.clear();
+    other.cache_ = {};
+    cache_ = {};
+    directory.absorb(std::move(other.directory));
+}
+
 extern template class BasicBook<SecurityBook>;
 extern template class BasicBook<FlatSecurityBook>;
 extern template class BasicBook<HybridFlatSecurityBook>;

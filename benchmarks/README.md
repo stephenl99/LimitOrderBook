@@ -1,5 +1,8 @@
 # queue benchmarks
 
+Linux results (book data structures across 8 synthetic scenarios, queues by thread placement, how the perf tooling
+works): [`benchmarks/linux/README.md`](linux/README.md).
+
 Comparing ways to hand messages from the parser thread to the handler thread:
 
 - **mutex + condvar** — the original, `std::queue` behind a mutex. Kept in `Core/Source/Baseline/MutexDecoder.cpp`.

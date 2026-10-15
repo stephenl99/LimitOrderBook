@@ -1,0 +1,11 @@
+date: 2026-10-15T12:59:20-04:00
+host: stephen-linder-ThinkPad-X1-Carbon-Gen-8
+kernel: 7.0.0-34-generic
+cpu: Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz
+cpus: 8, smt siblings of cpu1: 1 5 
+pinning: primary=1 cross_core=2 smt=5
+governor: powersave
+no_turbo: 0
+compiler: c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+commit: 6fdaff2 (dirty)
+perf_event_paranoid: 4

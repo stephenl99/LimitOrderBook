@@ -19,6 +19,11 @@
 #include <pthread/qos.h>
 #endif
 
+#ifdef __linux__
+#include <pthread.h>
+#include <sched.h>
+#endif
+
 #include "Baseline/MutexDecoder.h"
 #include "Baseline/SingleThreadDecoder.h"
 #include "Core/CircularBuffer.h"
@@ -40,11 +45,52 @@ using Clock = std::chrono::steady_clock;
 
 constexpr std::size_t kRingCapacity = 1 << 16;
 
-void prefer_performance_cores()
+enum class ThreadRole : std::size_t {
+    Producer = 0,
+    Consumer = 1,
+};
+
+std::vector<int> pinned_cpus()
+{
+    std::vector<int> cpus;
+    const char* list = std::getenv("LOB_CPUS");
+    if (list == nullptr) {
+        return cpus;
+    }
+    std::string text = list;
+    std::size_t start = 0;
+    while (start < text.size()) {
+        const std::size_t end = std::min(text.find(',', start), text.size());
+        if (end > start) {
+            cpus.push_back(std::stoi(text.substr(start, end - start)));
+        }
+        start = end + 1;
+    }
+    return cpus;
+}
+
+void pin_current_thread(std::size_t slot)
+{
+#ifdef __linux__
+    static const std::vector<int> cpus = pinned_cpus();
+    if (cpus.empty()) {
+        return;
+    }
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(cpus[slot % cpus.size()], &set);
+    pthread_setaffinity_np(pthread_self(), sizeof(set), &set);
+#else
+    (void)slot;
+#endif
+}
+
+void prefer_performance_cores(ThreadRole role = ThreadRole::Consumer)
 {
 #ifdef __APPLE__
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
+    pin_current_thread(static_cast<std::size_t>(role));
 }
 
 double thread_cpu_ns()
@@ -324,7 +370,7 @@ std::int64_t transfer(std::int64_t items)
     std::int64_t sum = 0;
 
     std::thread producer([&] {
-        prefer_performance_cores();
+        prefer_performance_cores(ThreadRole::Producer);
         for (std::int64_t i = 0; i < items; ++i) {
             queue.push(i);
         }
@@ -352,7 +398,7 @@ PacedResult paced_latencies(std::int64_t items, std::int64_t interval_ns)
     latencies.reserve(items);
 
     std::thread producer([&] {
-        prefer_performance_cores();
+        prefer_performance_cores(ThreadRole::Producer);
         const std::int64_t start = now_ns() + 1'000'000;
         for (std::int64_t i = 0; i < items; ++i) {
             const std::int64_t scheduled = start + i * interval_ns;
@@ -656,7 +702,7 @@ double fanout_sharded(std::int64_t items, std::size_t consumers)
     std::vector<std::thread> threads;
     for (std::size_t c = 0; c < consumers; ++c) {
         threads.emplace_back([&, c] {
-            prefer_performance_cores();
+            pin_current_thread(1 + c);
             std::int64_t sum = 0;
             std::int64_t value;
             while (rings[c]->pop(value)) {
@@ -691,7 +737,7 @@ double fanout_mpmc(std::int64_t items, std::size_t consumers)
     std::vector<std::thread> threads;
     for (std::size_t c = 0; c < consumers; ++c) {
         threads.emplace_back([&, c] {
-            prefer_performance_cores();
+            pin_current_thread(1 + c);
             BackoffWhenIdle idle;
             std::int64_t sum = 0;
             std::int64_t value;
@@ -732,6 +778,7 @@ double fanout_mpmc(std::int64_t items, std::size_t consumers)
 
 int run_fanout(std::int64_t items, int runs)
 {
+    pin_current_thread(static_cast<std::size_t>(ThreadRole::Producer));
     const std::array<std::size_t, 3> consumer_counts = {1, 2, 4};
     for (const std::size_t consumers : consumer_counts) {
         for (int run = 0; run < runs; ++run) {
@@ -863,6 +910,39 @@ int run_decode(const fs::path& path, int runs)
     return 0;
 }
 
+const std::array<std::string, 7> kOneImpls = {"mutex", "ring_yield", "ring_spin", "ring", "uncached_index",
+                                              "sequenced", "mpmc"};
+
+int run_one(const std::string& impl, std::int64_t items)
+{
+    g_items = items;
+    const auto start = Clock::now();
+    std::int64_t sum = 0;
+    if (impl == "mutex") {
+        sum = transfer<MutexQueue>(items);
+    } else if (impl == "ring_yield") {
+        sum = transfer<RingQueue<YieldWhenIdle>>(items);
+    } else if (impl == "ring_spin") {
+        sum = transfer<RingQueue<SpinWhenIdle>>(items);
+    } else if (std::find(kVariantImpls.begin(), kVariantImpls.end(), impl) != kVariantImpls.end()) {
+        sum = with_variant<FlatRun>(impl);
+    } else {
+        std::cerr << "queue_bench: unknown impl " << impl << ", one of:";
+        for (const std::string& name : kOneImpls) {
+            std::cerr << ' ' << name;
+        }
+        std::cerr << '\n';
+        return 1;
+    }
+    const double ms = elapsed_ms(start);
+    if (sum != items * (items - 1) / 2) {
+        std::cerr << "queue_bench: " << impl << " lost items\n";
+        return 1;
+    }
+    std::cout << "one," << impl << ',' << items << ',' << ms << ',' << static_cast<double>(items) / ms / 1000.0 << '\n';
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char* argv[])
@@ -880,6 +960,10 @@ int main(int argc, char* argv[])
         prefer_performance_cores();
         return run_batching(std::atoi(argv[2]));
     }
+    if (mode == "one" && argc > 3) {
+        prefer_performance_cores();
+        return run_one(argv[2], std::atoll(argv[3]));
+    }
     if (argc < 4) {
         std::cerr << "usage: queue_bench queue <items> <runs>\n"
                   << "       queue_bench latency <msgs_per_sec> <runs> [seconds]\n"
@@ -888,7 +972,9 @@ int main(int argc, char* argv[])
                   << "       queue_bench batching <runs>\n"
                   << "       queue_bench variants <runs>\n"
                   << "       queue_bench fanout <items> <runs>\n"
-                  << "       queue_bench shards <file.bin> <runs>\n";
+                  << "       queue_bench shards <file.bin> <runs>\n"
+                  << "       queue_bench one <impl> <items>\n"
+                  << "LOB_CPUS=a,b pins the producer to a and the consumer to b (fanout: consumers on b,c,...)\n";
         return 1;
     }
 

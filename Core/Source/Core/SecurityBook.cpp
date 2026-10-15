@@ -201,6 +201,24 @@ void BasicSecurityBook<Levels>::clear()
 }
 
 template <typename Levels>
+std::optional<Price> BasicSecurityBook<Levels>::best_bid() const
+{
+    if (bid_levels.empty()) {
+        return std::nullopt;
+    }
+    return (*bid_levels.begin()).first;
+}
+
+template <typename Levels>
+std::optional<Price> BasicSecurityBook<Levels>::best_ask() const
+{
+    if (ask_levels.empty()) {
+        return std::nullopt;
+    }
+    return (*ask_levels.begin()).first;
+}
+
+template <typename Levels>
 std::vector<LevelSummary> BasicSecurityBook<Levels>::bid_depth(std::size_t levels) const
 {
     return depth_snapshot(bid_levels, levels);
