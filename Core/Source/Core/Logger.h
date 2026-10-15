@@ -8,10 +8,7 @@
 #include <ostream>
 #include <string>
 
-class Book;
-class Order;
-class SecurityBook;
-class StockDirectory;
+#include "Book.h"
 
 namespace Logger {
 

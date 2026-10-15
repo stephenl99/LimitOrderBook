@@ -336,6 +336,86 @@ costs the producer a cache-line handoff per message.
 The parser used to drop records with action None. 95,928 of them carried the end-of-event flag, so those events were
 never seen as finished. They are kept now, and the record count matches Databento's.
 
+## The book: price level storage
+
+Price levels are a template parameter on `BasicSecurityBook` (instantiated in `SecurityBook.cpp`), picked per run with
+`databento_replay ... <mode> tree|flat|hybrid 1|64`:
+
+- **tree**: `std::map<Price, Level>` per side
+- **flat**: sorted vector of (price, level pointer), best price at the back, linear search from the back
+- **hybrid**: same vector, linear over the last 8 entries, then binary search
+
+Levels sit in stable storage so the order index can point at them while the vector shifts. `modify_order` now splices
+the existing list node to the new level instead of erasing and re-inserting the order (all versions).
+
+Book only (`book` mode: decode the whole file into memory first, then time only the book updates, median of 15 passes):
+
+| ns per record | six-instrument hour | ESZ6 hour |
+|---|---|---|
+| tree | 60 | 39.8 |
+| flat | 61 | |
+| hybrid | 51 | 35.0 |
+
+The linear flat map lost because 15% of lookups land 50 to 999 levels from the best price (71% are within 4). Linear near
+the touch plus binary search beyond fixes that tail. In the full threaded replay the differences are inside the noise;
+`make replay_matrix MATRIX_FILES="..."` runs every mode x book x batch combination and writes `replay_matrix.csv`.
+
+All three give identical 40-level depth after every completed event on all six instruments; `FlatBook.*` tests run
+5,000 random operations against the tree and compare every level's queue after each one. Printing and counting are off
+when `print_every_seconds` is 0, so benchmarks time the book and nothing else.
+
+## Hot levels, cold orders
+
+`AggregateSecurityBook<Levels, OrderIndex>`: each side keeps only `{quantity, order count}` per price; the order's price,
+quantity, side and arrival sequence live in a separate index that only cancels and modifies touch. A modify reads the
+old price and size from the index, then subtracts at the old level and adds at the new one. FIFO priority is kept as the
+sequence number (a new one when an order loses priority), so any level's queue can be rebuilt on demand; the tests rebuild
+every queue and compare it with the tree book's lists.
+
+Book only, ns per record (each row adds one change to the row above, median of 5 rounds):
+
+| book (`databento_replay ... book <name>`) | six-instrument hour | ESZ6 hour |
+|---|---|---|
+| `tree`: std::map levels, linked list per level, node hash map | 55.3 | 38.8 |
+| `hybrid`: flat vector of levels, still linked lists | 46.9 | 34.9 |
+| `agg`: aggregate levels, node hash map | 46.4 | 35.1 |
+| `agg-flat`: + open-addressing order index | 40.5 | 27.3 |
+| `ladder`: + levels indexed directly by tick | 32.4 | 23.1 |
+| `ladder-cached`: + 1-slot instrument cache | 28.3 | 17.9 |
+| `ladder-cached64`: + 64-slot instrument cache | 25.1 | 18.6 |
+| `ladder-identity`: 64-slot cache, identity hash | 27.4 | 24.3 |
+
+The instrument changes on 25% of records in the six-instrument file, which is why one cache slot is not enough. Order ids
+increase per instrument, but the identity hash still lost: sequential ids fill one contiguous run and linear probing has
+to walk it.
+
+Through the pipeline (`make replay_matrix`, median of 11 alternating runs, M msgs/s):
+
+| | zstd file | decompressed |
+|---|---|---|
+| producer alone (`parse`) | 15.8 | 37.6 |
+| single, tree | 7.9 | 11.1 |
+| single, ladder-cached64 | 10.4 | 16.9 |
+| ring batch 64, tree | 14.8 | 16.1 |
+| ring batch 64, ladder-cached64 | 14.7 | 31.5 |
+| sharded 2, tree | 13.9 | 25.9 |
+| sharded 2, ladder-cached64 | 12.2 | 23.6 |
+
+With the fast book the ring reaches 84% of the producer's own speed on decompressed data and 94% on the zstd file, so the
+book is no longer the bottleneck. One ring now beats two shards: once the consumer keeps up, fanning out only adds
+cache-line handoffs.
+
+### False sharing, second time
+
+Moving the record counter to the producer put it on the same 128-byte line as the book's instrument lookup, which the
+consumer reads on every message (`MboSession::records_` at byte 240, `book_` at 128 to 223; `Shard::records` at byte 96
+right after `Shard::book`). It showed up as a 1-slot instrument cache losing to a 64-slot one only in threaded runs. With
+the producer counters on their own line: ring + tree 14.4 to 16.2 M/s, ring + 1-slot cache 22.7 to 28.4, ring + 64-slot
+cache unchanged (its hot slots were already on other lines). Sharding numbers above the fix are understated.
+
+Every book gives identical 40-level depth after every completed event on all six instruments; TSan and ASan are clean.
+`make replay MBO_THREADING=ring MBO_BOOK=ladder-cached64 MBO_BATCH=64` runs any combination.
+
 ## Fixtures
 
 ITCH: `gen_big_mix.py --locates 8 --mutate-every 4`, adds over 8 symbols with an execute + cancel every 4th add.
@@ -347,6 +427,8 @@ Synthetic. Still need a real NASDAQ sample.
 - more than one parser, so sharding has something to scale
 - a blocking last stage in the back-off
 - LTO so the byte readers inline into the decoders (~11% in decode today)
+- hand the consumer a whole batch and prefetch the order-index slots for messages a few ahead
+- a smaller `MboMessage` in the ring: about 72 bytes with a vtable pointer, so roughly one cache line crosses cores per message
 - `reserve` the order index (~3% in rehash), and look at teardown
 - flat price levels instead of `std::map` — only ~4% in the profile, so low priority
 - real NASDAQ data

@@ -10,7 +10,7 @@ MODES = ["single", "ring"]
 
 
 def run_once(binary, data_file, symbol, mode):
-    out = subprocess.run([binary, data_file, symbol, "100000", "", "40", "0", mode],
+    out = subprocess.run([binary, data_file, symbol, "0", "", "40", "0", mode],
                          capture_output=True, text=True, check=True).stdout
     return int(re.search(r"\((\d+) msgs/s", out).group(1))
 
