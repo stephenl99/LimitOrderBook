@@ -27,6 +27,8 @@ public:
 
     MutexPipeline(const MutexPipeline&) = delete;
     MutexPipeline& operator=(const MutexPipeline&) = delete;
+    MutexPipeline(MutexPipeline&&) = delete;
+    MutexPipeline& operator=(MutexPipeline&&) = delete;
 
     ~MutexPipeline() { finish(); }
 

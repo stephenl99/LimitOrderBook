@@ -406,8 +406,7 @@ What a side does when the ring is empty or full. This matters as much as the que
 | spin | the `pause` instruction (~140 cycles on Skylake-derived cores) | Lowest latency, 100% CPU. Worst flat out, because the spinner keeps stealing the line from the side doing real work |
 | back-off | spin N, then yield M, then sleep 20 µs | Equals spin at high rates. Slower once it reaches the yield stage. Only saves CPU once it reaches the sleep stage |
 
-x86 note: `PauseKind::Isb` compiles to the same `pause` as `PauseKind::Yield`, so the `isb` rows of
-`make backoff_sweep` duplicate the `yield` rows here. And `pause` costs ~140 cycles here versus ~9 ns for `isb` on the
+x86 note: `cpu_pause()` is `isb` on ARM and `pause` on x86. `pause` costs ~140 cycles here versus ~9 ns for `isb` on the
 M2, so `BalancedBackoff`'s 256 spins last several times longer on this CPU.
 
 ## Profiling with perf

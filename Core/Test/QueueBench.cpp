@@ -556,11 +556,6 @@ int run_latency(std::int64_t rate_per_sec, double seconds, int runs)
     return 0;
 }
 
-constexpr const char* pause_name(PauseKind kind)
-{
-    return kind == PauseKind::Isb ? "isb" : "yield";
-}
-
 double sweep_seconds(std::int64_t rate)
 {
     if (rate >= 100'000) {
@@ -570,13 +565,13 @@ double sweep_seconds(std::int64_t rate)
 }
 
 template <typename Idle>
-void sweep_one(const char* policy, const char* pause, std::int64_t spin, std::int64_t yield, int runs)
+void sweep_one(const char* policy, std::int64_t spin, std::int64_t yield, int runs)
 {
     using Queue = RingQueue<Idle>;
     constexpr std::int64_t kFlatItems = 5'000'000;
     const std::array<std::int64_t, 4> rates = {1'000'000, 100'000, 10'000, 1'000};
     const auto prefix = [&] {
-        std::cout << policy << ',' << pause << ',' << spin << ',' << yield << ',';
+        std::cout << policy << ',' << spin << ',' << yield << ',';
     };
 
     for (int run = 0; run < runs; ++run) {
@@ -599,23 +594,21 @@ void sweep_one(const char* policy, const char* pause, std::int64_t spin, std::in
     std::cout.flush();
 }
 
-template <PauseKind Kind, std::uint32_t Yield, std::uint32_t... Spins>
+template <std::uint32_t Yield, std::uint32_t... Spins>
 void sweep_row(int runs)
 {
-    (sweep_one<BasicBackoff<Spins, Yield, Kind>>("backoff", pause_name(Kind), Spins, Yield, runs), ...);
+    (sweep_one<BasicBackoff<Spins, Yield>>("backoff", Spins, Yield, runs), ...);
 }
 
 int run_sweep(int runs)
 {
-    std::cout << "policy,pause,spin,yield,scenario,run,throughput_mps,p50_ns,p99_ns,p999_ns,consumer_cpu_pct\n";
-    sweep_one<YieldWhenIdle>("yield", "none", 0, -1, runs);
-    sweep_one<BasicSpin<PauseKind::Yield>>("spin", "yield", -1, 0, runs);
-    sweep_one<BasicSpin<PauseKind::Isb>>("spin", "isb", -1, 0, runs);
-    sweep_row<PauseKind::Yield, 0, 0, 32, 256, 2000, 16000>(runs);
-    sweep_row<PauseKind::Yield, 64, 0, 32, 256, 2000, 16000>(runs);
-    sweep_row<PauseKind::Yield, 2000, 0, 32, 256, 2000, 16000>(runs);
-    sweep_row<PauseKind::Yield, 20000, 0, 32, 256, 2000, 16000>(runs);
-    sweep_row<PauseKind::Isb, 2000, 32, 256, 2000>(runs);
+    std::cout << "policy,spin,yield,scenario,run,throughput_mps,p50_ns,p99_ns,p999_ns,consumer_cpu_pct\n";
+    sweep_one<YieldWhenIdle>("yield", 0, -1, runs);
+    sweep_one<SpinWhenIdle>("spin", -1, 0, runs);
+    sweep_row<0, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<64, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<2000, 0, 32, 256, 2000, 16000>(runs);
+    sweep_row<20000, 0, 32, 256, 2000, 16000>(runs);
     return 0;
 }
 

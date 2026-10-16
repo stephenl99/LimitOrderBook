@@ -23,6 +23,9 @@ public:
 
     SequencedBuffer(const SequencedBuffer&) = delete;
     SequencedBuffer& operator=(const SequencedBuffer&) = delete;
+    SequencedBuffer(SequencedBuffer&&) = delete;
+    SequencedBuffer& operator=(SequencedBuffer&&) = delete;
+    ~SequencedBuffer() = default;
 
     bool try_push(T&& value)
     {

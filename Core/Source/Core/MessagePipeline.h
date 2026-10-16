@@ -28,6 +28,8 @@ public:
 
     MessagePipeline(const MessagePipeline&) = delete;
     MessagePipeline& operator=(const MessagePipeline&) = delete;
+    MessagePipeline(MessagePipeline&&) = delete;
+    MessagePipeline& operator=(MessagePipeline&&) = delete;
 
     ~MessagePipeline() { finish(); }
 

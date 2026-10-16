@@ -20,6 +20,9 @@ public:
     CircularBuffer() = default;
     CircularBuffer(const CircularBuffer&) = delete;
     CircularBuffer& operator=(const CircularBuffer&) = delete;
+    CircularBuffer(CircularBuffer&&) = delete;
+    CircularBuffer& operator=(CircularBuffer&&) = delete;
+    ~CircularBuffer() = default;
 
     bool try_push(T&& value)
     {

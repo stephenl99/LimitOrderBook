@@ -17,6 +17,9 @@ public:
     MutexBuffer() = default;
     MutexBuffer(const MutexBuffer&) = delete;
     MutexBuffer& operator=(const MutexBuffer&) = delete;
+    MutexBuffer(MutexBuffer&&) = delete;
+    MutexBuffer& operator=(MutexBuffer&&) = delete;
+    ~MutexBuffer() = default;
 
     bool try_push(T&& value)
     {
