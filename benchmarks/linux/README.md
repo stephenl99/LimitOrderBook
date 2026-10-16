@@ -101,6 +101,28 @@ ns per record, book only (`databento_replay ... variants all`, 15 passes): `pool
 
 ![message latency](databento/images/09_book_message_latency.png)
 
+### Every handler x inner book
+
+`tools/linux/databento_combos.sh`: 7 books (all with a 64-slot instrument cache) x 9 handlers. Throughput is flat out
+on the decompressed `cme_mix` (5 alternating runs); latency is paced at 60x on `esz6`, batch 64. Full ranked tables in
+[`databento/combos_ranking.md`](databento/combos_ranking.md). This matrix ran in one later session where the machine
+was about 20% slower overall than the earlier runs, so compare within it, not against the numbers above.
+
+![combo throughput](databento/images/15_combo_throughput.png)
+![combo latency](databento/images/16_combo_latency.png)
+![combo trade-off](databento/images/17_combo_tradeoff.png)
+
+- **Best overall: `pooled-ladder` + SPSC ring.** Highest throughput (11.3–11.4 M msgs/s); with spin also a 281 ns
+  median handoff. Nothing beats spin + pooled-ladder on both axes except back-off + pooled-ladder, which trades
+  ~0.8 µs of median latency for 0.1 M/s and 59% less consumer CPU.
+- **The book decides throughput, the idle strategy decides latency.** Every fast book (`pooled-*`, `ladder`,
+  `agg-flat`) lands at 10–11.4 M msgs/s behind any lock-free ring; the queue's median is ~0.3 µs (spin),
+  ~0.4 µs (yield), ~1–2 µs (back-off, sequence, locked), ~73 µs (condvar) whatever the book.
+- **Slow books need shards, not a faster queue.** `tree` / `hybrid` stay at 3.4–5.5 M msgs/s with any single
+  consumer, and reach 10.0–10.7 with 3 shards. For the fast books sharding is slightly worse than one ring.
+- **`lazy-handle-ladder`** is the one fast-ish book that gains from sharding (7.9 → 10.0).
+- **Worst: mutex + condvar with a fast book** (2.4–2.8 M msgs/s, ~73 µs): the lock and wakeup cost more than the book.
+
 ### Why, from perf
 
 ![work per record](databento/images/10_work_per_record.png)

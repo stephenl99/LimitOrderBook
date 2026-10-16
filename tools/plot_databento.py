@@ -417,6 +417,125 @@ def perf_charts(out, images):
             print(f"wrote {images / f'{index}_{name}.png'}")
 
 
+COMBO_BOOKS = ["tree-cached64", "hybrid-cached64", "agg-flat-cached64", "ladder-cached64", "pooled-hybrid",
+               "pooled-ladder", "lazy-handle-ladder"]
+COMBO_BOOK_NAMES = {"tree-cached64": "tree", "hybrid-cached64": "hybrid", "agg-flat-cached64": "agg-flat",
+                    "ladder-cached64": "ladder", "pooled-hybrid": "pooled-hybrid", "pooled-ladder": "pooled-ladder",
+                    "lazy-handle-ladder": "lazy-handle-ladder"}
+COMBO_HANDLERS = ["single", "mutex-cv", "locked-ring", "ring-yield", "ring-spin", "ring", "sequenced", "sharded2",
+                  "sharded3"]
+COMBO_HANDLER_NAMES = dict(HANDOFF_TICKS, single="single\nthread", sharded2="2 shards", sharded3="3 shards")
+
+
+def combo_heatmap(ax, matrix, rows, cols, fmt, reverse):
+    finite = [v for line in matrix for v in line if v == v]
+    colors = ["#123f7a", "#2a78d6", "#9cc1ee", "#eef4fc"]
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("rank", colors[::-1] if not reverse else colors)
+    ax.imshow(matrix, cmap=cmap, vmin=min(finite), vmax=max(finite), aspect="auto")
+    span = max(finite) - min(finite) or 1
+    for i in range(len(rows)):
+        for j in range(len(cols)):
+            value = matrix[i][j]
+            if value != value:
+                ax.text(j, i, "-", ha="center", va="center", color=MUTED)
+                continue
+            strength = (value - min(finite)) / span
+            dark = strength < 0.45 if reverse else strength > 0.55
+            ax.text(j, i, fmt(value), ha="center", va="center", fontsize=10, color="#ffffff" if dark else INK)
+    ax.set_xticks(range(len(cols)), [COMBO_HANDLER_NAMES.get(c, c) for c in cols], fontsize=10)
+    ax.set_yticks(range(len(rows)), [COMBO_BOOK_NAMES.get(r, r) for r in rows])
+    ax.tick_params(length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+
+def combo_throughput(rows):
+    cells = defaultdict(list)
+    for row in rows:
+        if row["msgs_per_sec"]:
+            cells[(row["book"], row["handler"])].append(float(row["msgs_per_sec"]) / 1e6)
+    return {key: median(values) for key, values in cells.items()}
+
+
+def plot_combos(out, images):
+    throughput = combo_throughput(read(out / "combos_throughput.csv"))
+    latency = {(r["book"], r["handoff"]): r for r in read(out / "combos_latency.csv")}
+    lines = []
+    if throughput:
+        books = [b for b in COMBO_BOOKS if any(k[0] == b for k in throughput)]
+        handlers = [h for h in COMBO_HANDLERS if any(k[1] == h for k in throughput)]
+        matrix = [[throughput.get((b, h), float("nan")) for h in handlers] for b in books]
+        fig, ax = plt.subplots(figsize=SIZE)
+        combo_heatmap(ax, matrix, books, handlers, lambda v: f"{v:.1f}", reverse=False)
+        title(fig, "Throughput of every handler x inner book (cme_mix, decompressed)",
+              "Million messages per second, median of runs. Darker is faster. Every book uses a 64-slot instrument cache.")
+        fig.tight_layout(rect=(0, 0, 1, 0.92))
+        save(fig, images, "15_combo_throughput.png")
+        ranked = sorted(throughput.items(), key=lambda kv: -kv[1])
+        lines += ["## Throughput, best first (M msgs/s)", "", "| rank | handler | book | M msgs/s |", "|---|---|---|---|"]
+        lines += [f"| {i} | {h} | {COMBO_BOOK_NAMES.get(b, b)} | {v:.2f} |" for i, ((b, h), v) in enumerate(ranked, 1)]
+        lines.append("")
+    if latency:
+        books = [b for b in COMBO_BOOKS if any(k[0] == b for k in latency)]
+        handlers = [h for h in HANDOFF_ORDER if any(k[1] == h for k in latency)]
+        fig, axes = plt.subplots(1, 2, figsize=SIZE, sharey=True)
+        for ax, key, label in zip(axes, ("p50_ns", "p99_ns"), ("median", "p99")):
+            matrix = [[float(latency[(b, h)][key]) if (b, h) in latency else float("nan") for h in handlers] for b in books]
+            combo_heatmap(ax, matrix, books, handlers, nice_ns_short, reverse=True)
+            ax.set_title(label, loc="left")
+        title(fig, f"Push-to-pickup latency of every queue x inner book ({next(iter(latency.values()))['file']})",
+              f"Paced at {next(iter(latency.values()))['speed']}x market time, batch 64, separate cores. Darker is faster.")
+        fig.tight_layout(rect=(0, 0, 1, 0.92))
+        save(fig, images, "16_combo_latency.png")
+        ranked = sorted(latency.items(), key=lambda kv: float(kv[1]["p50_ns"]))
+        lines += ["## Latency, best median first", "", "| rank | queue | book | median | p90 | p99 | p99.9 |",
+                  "|---|---|---|---|---|---|---|"]
+        lines += [f"| {i} | {h} | {COMBO_BOOK_NAMES.get(b, b)} | {nice_ns_short(float(r['p50_ns']))} | "
+                  f"{nice_ns_short(float(r['p90_ns']))} | {nice_ns_short(float(r['p99_ns']))} | {nice_ns_short(float(r['p999_ns']))} |"
+                  for i, ((b, h), r) in enumerate(ranked, 1)]
+        lines.append("")
+    if throughput and latency:
+        points = [(b, h, throughput[(b, h)], float(latency[(b, h)]["p50_ns"])) for (b, h) in latency if (b, h) in throughput]
+        fig, ax = plt.subplots(figsize=SIZE)
+        for handler in HANDOFF_ORDER:
+            subset = [p for p in points if p[1] == handler]
+            ax.scatter([p[3] for p in subset], [p[2] for p in subset], s=90, color=HANDOFF_COLORS[handler],
+                       edgecolors=SURFACE, linewidths=1.5, label=HANDOFF_NAMES[handler], zorder=3)
+        frontier = []
+        for point in sorted(points, key=lambda p: p[3]):
+            if not frontier or point[2] > frontier[-1][2]:
+                frontier.append(point)
+        ax.plot([p[3] for p in frontier], [p[2] for p in frontier], color=GRAY, linestyle="--", linewidth=1.2, zorder=2)
+        for k, (book, handler, rate, lat) in enumerate(sorted(frontier, key=lambda p: -p[2])):
+            ax.annotate(f"{COMBO_BOOK_NAMES.get(book, book)} + {HANDOFF_NAMES[handler]} ({rate:.1f} M/s)", (lat, rate),
+                        xycoords="data", xytext=(0.6, 0.95 - 0.07 * k), textcoords="axes fraction", va="top", fontsize=10,
+                        color=INK, arrowprops={"arrowstyle": "-", "color": GRAY, "linewidth": 0.8})
+        ax.set_xscale("log")
+        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: nice_ns(v)))
+        ax.set_xlabel("median push-to-pickup latency (lower is better)")
+        ax.set_ylabel("million messages per second (higher is better)")
+        ax.grid(color=GRID, linewidth=0.8)
+        bottom_legend(fig, ax)
+        title(fig, "Throughput vs latency for every queue x inner book",
+              "Each point is one combination. Dashed line: the combinations nothing else beats on both axes (labeled).")
+        fig.tight_layout(rect=(0, 0.04, 1, 0.92))
+        save(fig, images, "17_combo_tradeoff.png")
+        lines += ["## Best trade-offs (nothing beats them on both throughput and median latency)", "",
+                  "| handler | book | M msgs/s | median |", "|---|---|---|---|"]
+        lines += [f"| {h} | {COMBO_BOOK_NAMES.get(b, b)} | {r:.2f} | {nice_ns_short(l)} |" for b, h, r, l in frontier]
+    if lines:
+        (out / "combos_ranking.md").write_text("# Handler x inner book rankings\n\n" + "\n".join(lines) + "\n")
+        print(f"wrote {out / 'combos_ranking.md'}")
+
+
+def nice_ns_short(ns):
+    if ns >= 1e6:
+        return f"{ns / 1e6:.2f} ms"
+    if ns >= 1e3:
+        return f"{ns / 1e3:.1f} µs"
+    return f"{ns:.0f} ns"
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit("usage: plot_databento.py <benchmarks/linux/databento>")
@@ -435,6 +554,7 @@ def main():
     plot_book_matrix(variants, images)
     plot_book_op_latency(read(out / "book_latency.csv"), images)
     perf_charts(out, images)
+    plot_combos(out, images)
 
 
 if __name__ == "__main__":

@@ -430,6 +430,12 @@ constexpr BookEntry kBooks[] = {
     {"ladder", run_book<LadderBook>},
     {"ladder-cached64", run_book<DirectCachedLadderBook>},
     {"ladder-identity", run_book<IdentityLadderBook>},
+    {"tree-cached64", run_book<OuterBook<SecurityBook, 64>>},
+    {"hybrid-cached64", run_book<OuterBook<HybridFlatSecurityBook, 64>>},
+    {"agg-flat-cached64", run_book<OuterBook<SortedAggregateFlatIndexSecurityBook, 64>>},
+    {"pooled-hybrid", run_book<OuterBook<PooledHybridSecurityBook, 64>>},
+    {"pooled-ladder", run_book<OuterBook<PooledLadderSecurityBook, 64>>},
+    {"lazy-handle-ladder", run_book<OuterBook<LazyHandleLadderSecurityBook, 64>>},
 };
 
 std::string book_names()
