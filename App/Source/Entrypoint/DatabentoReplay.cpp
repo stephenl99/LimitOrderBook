@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <databento/dbn_store.hpp>
 #include <databento/exceptions.hpp>
@@ -18,6 +19,7 @@
 #include <unordered_map>
 
 #include "BookVariants/BookVariants.h"
+#include "BookVariants/OrderFlow.h"
 #include "Session/DatabentoSession.h"
 
 namespace db = databento;
@@ -101,6 +103,8 @@ struct ReplayOptions {
     std::size_t shards;
     std::string book;
     std::size_t batch;
+    std::string handoff;
+    std::filesystem::path latency_path;
 };
 
 std::vector<mbo::MboMessage> load_messages(const std::filesystem::path& path)
@@ -232,14 +236,115 @@ int time_variants(const ReplayOptions& options)
     return 0;
 }
 
-template <typename BookType>
+int export_flow(const ReplayOptions& options)
+{
+    const auto messages = load_messages(options.path);
+    const auto ticks = instrument_ticks(options.path);
+    OrderFlow flow;
+    std::unordered_map<InstrumentId, std::uint32_t> dense;
+    struct Live {
+        std::uint32_t instrument;
+        std::uint32_t quantity;
+    };
+    std::unordered_map<std::uint64_t, Live> live;
+    const auto instrument_for = [&](InstrumentId id) {
+        const auto [it, inserted] = dense.try_emplace(id, static_cast<std::uint32_t>(dense.size()));
+        if (inserted) {
+            const auto tick = ticks.find(id);
+            flow.ticks.push_back(tick == ticks.end() ? 1 : tick->second);
+        }
+        return it->second;
+    };
+    for (const mbo::MboMessage& message : messages) {
+        const ::Side side = message.side() == mbo::Side::Bid ? ::Side::BID : ::Side::ASK;
+        const std::uint64_t id = message.order_id();
+        switch (message.action()) {
+        case mbo::Action::Add: {
+            const std::uint32_t instrument = instrument_for(message.instrument_id());
+            flow.ops.push_back(BookOp{BookOpType::Add, side, instrument, message.size(), id, 0, message.raw_price()});
+            live[id] = Live{instrument, message.size()};
+            break;
+        }
+        case mbo::Action::Cancel: {
+            const std::uint32_t instrument = instrument_for(message.instrument_id());
+            flow.ops.push_back(BookOp{BookOpType::Cancel, side, instrument, message.size(), id, 0, 0});
+            const auto it = live.find(id);
+            if (it != live.end() && it->second.quantity <= message.size()) {
+                live.erase(it);
+            } else if (it != live.end()) {
+                it->second.quantity -= message.size();
+            }
+            break;
+        }
+        case mbo::Action::Modify: {
+            const std::uint32_t instrument = instrument_for(message.instrument_id());
+            flow.ops.push_back(BookOp{BookOpType::Modify, side, instrument, message.size(), id, 0, message.raw_price()});
+            if (message.size() == 0) {
+                live.erase(id);
+            } else if (const auto it = live.find(id); it != live.end()) {
+                it->second.quantity = message.size();
+            }
+            break;
+        }
+        case mbo::Action::Clear: {
+            const std::uint32_t instrument = instrument_for(message.instrument_id());
+            flow.ops.push_back(BookOp{BookOpType::Clear, side, instrument, 0, 0, 0, 0});
+            std::erase_if(live, [&](const auto& entry) { return entry.second.instrument == instrument; });
+            break;
+        }
+        case mbo::Action::Fill:
+        case mbo::Action::Trade:
+        case mbo::Action::None:
+            break;
+        }
+        flow.peak_resting = std::max(flow.peak_resting, live.size());
+    }
+    save_order_flow(flow, options.depth_path);
+    std::cout << "exported " << flow.ops.size() << " book operations from " << messages.size() << " records, "
+              << flow.ticks.size() << " instruments, peak resting " << flow.peak_resting << " to "
+              << options.depth_path << '\n';
+    return 0;
+}
+
+double percentile(const std::vector<std::uint32_t>& sorted, double p)
+{
+    return sorted.empty() ? 0.0 : sorted[static_cast<std::size_t>(p * static_cast<double>(sorted.size() - 1))];
+}
+
+void write_latency(const ReplayOptions& options, std::vector<std::uint32_t> latencies)
+{
+    std::sort(latencies.begin(), latencies.end());
+    const bool fresh = !std::filesystem::exists(options.latency_path);
+    std::ofstream out(options.latency_path, std::ios::app);
+    if (fresh) {
+        out << "file,mode,book,handoff,batch,speed,count,p50_ns,p90_ns,p99_ns,p999_ns,p9999_ns,max_ns\n";
+    }
+    out << options.path.filename().string() << ',' << options.mode << ',' << options.book << ',' << options.handoff
+        << ',' << options.batch << ',' << options.speed << ',' << latencies.size() << ',' << percentile(latencies, 0.5)
+        << ',' << percentile(latencies, 0.9) << ',' << percentile(latencies, 0.99) << ','
+        << percentile(latencies, 0.999) << ',' << percentile(latencies, 0.9999) << ','
+        << (latencies.empty() ? 0 : latencies.back()) << '\n';
+    const std::filesystem::path cdf_path = options.latency_path.string() + ".cdf";
+    const bool fresh_cdf = !std::filesystem::exists(cdf_path);
+    std::ofstream cdf(cdf_path, std::ios::app);
+    if (fresh_cdf) {
+        cdf << "file,mode,book,handoff,batch,speed,p,latency_ns\n";
+    }
+    for (int step = 0; step <= 1000; ++step) {
+        const double p = 1.0 - std::pow(10.0, -4.0 * step / 1000.0);
+        cdf << options.path.filename().string() << ',' << options.mode << ',' << options.book << ',' << options.handoff
+            << ',' << options.batch << ',' << options.speed << ',' << p << ',' << percentile(latencies, p) << '\n';
+    }
+}
+
+template <typename BookType, typename HandoffType = DefaultHandoff>
 int replay(const ReplayOptions& options)
 {
     if (options.mode == "book") {
         return time_book_only<BookType>(options);
     }
     std::ofstream depth_file;
-    DatabentoSession<BookType> session(options.label, std::chrono::seconds{options.print_every_seconds}, options.threading,
+    DatabentoSession<BookType, HandoffType> session(options.label, std::chrono::seconds{options.print_every_seconds}, options.threading,
                                  options.shards, options.batch);
     if (!options.depth_path.empty()) {
         depth_file.open(options.depth_path);
@@ -266,6 +371,9 @@ int replay(const ReplayOptions& options)
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 
     session.print_summary();
+    if constexpr (HandoffType::kStamped) {
+        write_latency(options, session.handoff_latencies_ns());
+    }
     std::cout << "replayed " << session.records() << " records in " << seconds << "s";
     if (options.speed > 0.0) {
         std::cout << " (paced at " << options.speed << "x market speed)\n";
@@ -276,19 +384,52 @@ int replay(const ReplayOptions& options)
     return session.records() == 0 ? 1 : 0;
 }
 
+template <typename BookType, bool Stamped>
+int replay_with_handoff(const ReplayOptions& options)
+{
+    if (options.handoff == "ring") {
+        return replay<BookType, Handoff<CircularBuffer, BackoffWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "ring-spin") {
+        return replay<BookType, Handoff<CircularBuffer, SpinWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "ring-yield") {
+        return replay<BookType, Handoff<CircularBuffer, YieldWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "sequenced") {
+        return replay<BookType, Handoff<SequencedBuffer, BackoffWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "locked-ring") {
+        return replay<BookType, Handoff<MutexBuffer, BackoffWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "mutex-cv") {
+        return replay<BookType, CondvarHandoff<Stamped>>(options);
+    }
+    std::cerr << "databento_replay: unknown handoff " << options.handoff
+              << " (ring|ring-spin|ring-yield|sequenced|locked-ring|mutex-cv)\n";
+    return 1;
+}
+
+template <typename BookType>
+int run_book(const ReplayOptions& options)
+{
+    return options.latency_path.empty() ? replay_with_handoff<BookType, false>(options)
+                                        : replay_with_handoff<BookType, true>(options);
+}
+
 using ReplayFunction = int (*)(const ReplayOptions&);
 
 using BookEntry = std::pair<std::string_view, ReplayFunction>;
 
 constexpr BookEntry kBooks[] = {
-    {"tree", replay<Book>},
-    {"flat", replay<FlatBook>},
-    {"hybrid", replay<HybridFlatBook>},
-    {"agg", replay<AggregateBook>},
-    {"agg-flat", replay<AggregateFlatIndexBook>},
-    {"ladder", replay<LadderBook>},
-    {"ladder-cached64", replay<DirectCachedLadderBook>},
-    {"ladder-identity", replay<IdentityLadderBook>},
+    {"tree", run_book<Book>},
+    {"flat", run_book<FlatBook>},
+    {"hybrid", run_book<HybridFlatBook>},
+    {"agg", run_book<AggregateBook>},
+    {"agg-flat", run_book<AggregateFlatIndexBook>},
+    {"ladder", run_book<LadderBook>},
+    {"ladder-cached64", run_book<DirectCachedLadderBook>},
+    {"ladder-identity", run_book<IdentityLadderBook>},
 };
 
 std::string book_names()
@@ -307,8 +448,12 @@ int main(int argc, char* argv[])
 {
     if (argc < 2) {
         std::cerr << "usage: databento_replay <file.dbn.zst> [label] [print_every_seconds] [depth.csv] [levels] [speed]"
-                     " [single|ring|parse|book|variants|shardedN] ["
-                  << book_names() << "] [batch]\n"
+                     " [single|mutex|ring|parse|book|variants|export|shardedN] ["
+                  << book_names() << "] [batch] [handoff] [latency.csv]\n"
+                  << "  export writes the book operations as a book_bench flow to the depth.csv argument\n"
+                  << "  mutex is the ring mode with a std::queue + mutex + condition variable (the mutex-cv handoff)\n"
+                  << "  handoff is ring (default), ring-spin, ring-yield, sequenced, locked-ring or mutex-cv\n"
+                  << "  latency.csv stamps each message on push and appends push-to-apply percentiles\n"
                   << "  variants times every book_bench variant on the file, book only; the book argument is all"
                      " or a comma list\n"
                   << "  print_every_seconds 0 turns off printing and counting, for benchmarks\n"
@@ -327,12 +472,14 @@ int main(int argc, char* argv[])
     options.mode = argc > 7 ? argv[7] : "single";
     const bool sharded = options.mode.starts_with("sharded");
     options.shards = sharded ? std::stoul(options.mode.substr(7)) : 1;
-    options.threading = options.mode == "ring"    ? Threading::Pipeline
+    options.threading = options.mode == "ring" || options.mode == "mutex" ? Threading::Pipeline
                         : options.mode == "parse" ? Threading::ParseOnly
                         : sharded                 ? Threading::Sharded
                                                   : Threading::Single;
     options.book = argc > 8 ? argv[8] : (options.mode == "variants" ? "all" : "tree");
     options.batch = argc > 9 ? static_cast<std::size_t>(std::atoi(argv[9])) : 1;
+    options.handoff = argc > 10 ? argv[10] : (options.mode == "mutex" ? "mutex-cv" : "ring");
+    options.latency_path = argc > 11 ? argv[11] : "";
 
     if (options.batch < 1 || options.batch > DatabentoSession<>::kQueueCapacity) {
         std::cerr << "databento_replay: batch must be 1 to " << DatabentoSession<>::kQueueCapacity << '\n';
@@ -342,6 +489,15 @@ int main(int argc, char* argv[])
     if (!std::filesystem::exists(options.path)) {
         std::cerr << "databento_replay: no such file " << options.path << " (run make mbo_download first)\n";
         return 1;
+    }
+
+    if (options.mode == "export") {
+        try {
+            return export_flow(options);
+        } catch (const std::exception& e) {
+            std::cerr << "error: " << e.what() << '\n';
+            return 1;
+        }
     }
 
     if (options.mode == "variants") {

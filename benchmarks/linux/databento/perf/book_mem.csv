@@ -1,0 +1,503 @@
+scenario,impl,source,owner,category,level,loads,latency_cycles
+cme_mix,tree,optional:562,,other,L1,169,10527
+cme_mix,tree,SecurityBook.cpp:227,,book logic,L1,114,8082
+cme_mix,tree,SecurityBook.cpp:236,,book logic,L1,83,4405
+cme_mix,tree,hashtable.h:2215,,order index,fill buffer,19,1591
+cme_mix,tree,hashtable.h:2209,,order index,L3,28,1371
+cme_mix,tree,hashtable.h:2209,,order index,DRAM,4,1339
+cme_mix,tree,stl_function.h:378,,other,L3,26,1190
+cme_mix,tree,stl_function.h:378,,other,DRAM,1,1099
+cme_mix,tree,hashtable.h:2205,,order index,L3,19,909
+cme_mix,tree,stl_tree.h:1425,,price levels,L3,16,706
+cme_mix,tree,stl_tree.h:2604,,price levels,fill buffer,14,660
+cme_mix,tree,hashtable_policy.h:1071,,order index,DRAM,2,651
+cme_mix,tree,hashtable_policy.h:1071,,order index,L3,11,519
+cme_mix,tree,hashtable.h:879,,order index,fill buffer,11,508
+cme_mix,tree,stl_tree.h:1437,,price levels,fill buffer,11,504
+cme_mix,tree,[kernel],,kernel,fill buffer,3,485
+cme_mix,tree,stl_list.h:604,,order queue,fill buffer,9,438
+cme_mix,tree,hashtable_policy.h:584,,order index,fill buffer,10,436
+cme_mix,tree,hashtable_policy.h:584,,order index,L3,8,413
+cme_mix,tree,SecurityBook.cpp:90,,book logic,fill buffer,8,388
+cme_mix,tree,stl_list.h:599,,order queue,DRAM,1,375
+cme_mix,tree,BookBench.cpp:137,Options,benchmark harness,DRAM,1,355
+cme_mix,tree,hashtable.h:2580,,order index,fill buffer,8,341
+cme_mix,tree,BookBench.cpp:135,Options,benchmark harness,fill buffer,1,331
+cme_mix,tree,BookBench.cpp:137,Options,benchmark harness,fill buffer,1,317
+cme_mix,tree,stl_tree.h:1425,,price levels,fill buffer,7,316
+cme_mix,tree,[kernel],,kernel,L1,6,306
+cme_mix,tree,stl_list.h:599,,order queue,fill buffer,6,299
+cme_mix,tree,[kernel],,kernel,DRAM,1,261
+cme_mix,tree,[kernel],,kernel,L3,5,224
+cme_mix,tree,:libstdc++.so.6.0.35[1c7d8c],,other,fill buffer,5,215
+cme_mix,tree,hashtable.h:2209,,order index,fill buffer,4,207
+cme_mix,tree,stl_tree.h:1437,,price levels,L3,4,188
+cme_mix,tree,stl_list.h:604,,order queue,L3,3,151
+cme_mix,tree,stl_tree.h:2604,,price levels,L3,3,145
+cme_mix,tree,hashtable.h:2488,,order index,L1,4,145
+cme_mix,tree,SecurityBook.cpp:202,,book logic,fill buffer,3,141
+cme_mix,tree,Order.h:55,Order,order queue,L3,3,138
+cme_mix,tree,SecurityBook.cpp:90,,book logic,L3,3,134
+cme_mix,tree,hashtable.h:2763,,order index,L3,3,131
+cme_mix,tree,stl_tree.h:2642,,price levels,L3,3,130
+cme_mix,tree,:libstdc++.so.6.0.35[d9062],,other,fill buffer,1,129
+cme_mix,tree,SecurityBook.cpp:191,,book logic,L3,2,96
+cme_mix,tree,hashtable_policy.h:366,,order index,L3,2,92
+cme_mix,tree,stl_function.h:378,,other,fill buffer,2,92
+cme_mix,tree,SecurityBook.cpp:201,,book logic,fill buffer,2,84
+cme_mix,tree,SecurityBook.cpp:232,,book logic,L1,1,69
+cme_mix,tree,stl_list.h:801,,order queue,L1,1,59
+cme_mix,tree,hashtable.h:2774,,order index,L3,1,58
+cme_mix,tree,hashtable.h:2368,,order index,L1,1,55
+cme_mix,tree,SecurityBook.cpp:201,,book logic,L3,1,53
+cme_mix,tree,SecurityBook.cpp:203,,book logic,fill buffer,1,52
+cme_mix,tree,OuterBook.h:32,OuterBook,instrument lookup,fill buffer,1,49
+cme_mix,tree,hashtable.h:2215,,order index,L3,1,49
+cme_mix,tree,SecurityBook.cpp:203,,book logic,L3,1,49
+cme_mix,tree,:libstdc++.so.6.0.35[1c7d67],,other,fill buffer,1,48
+cme_mix,tree,:libstdc++.so.6.0.35[1c7d96],,other,fill buffer,1,47
+cme_mix,tree,:libstdc++.so.6.0.35[1c7d32],,other,L3,1,47
+cme_mix,tree,SecurityBook.cpp:60,,book logic,L1,1,45
+cme_mix,tree,:libstdc++.so.6.0.35[1c9835],,other,L1,1,43
+cme_mix,tree,memory_resource.h:171,,other,fill buffer,1,41
+cme_mix,tree,SecurityBook.cpp:60,,book logic,fill buffer,1,39
+cme_mix,tree,:book_bench[4924],,other,L3,1,37
+cme_mix,tree,stl_tree.h:3117,,price levels,L1,1,37
+cme_mix,tree,:libstdc++.so.6.0.35[dda34],,other,fill buffer,1,37
+cme_mix,tree,malloc.c:4550,,other,L1,1,36
+cme_mix,tree,:libstdc++.so.6.0.35[d9057],,other,L3,1,36
+cme_mix,tree,malloc.c:3287,,other,L3,1,35
+cme_mix,tree,Order.cpp:41,,other,L1,1,34
+cme_mix,tree,:libstdc++.so.6.0.35[d9062],,other,L1,1,34
+cme_mix,tree,:libstdc++.so.6.0.35[1c7d8c],,other,L1,1,33
+cme_mix,tree,hashtable.h:2205,,order index,fill buffer,1,32
+cme_mix,tree,SecurityBook.cpp:209,,book logic,fill buffer,1,32
+cme_mix,tree,:libstdc++.so.6.0.35[1c6e98],,other,fill buffer,1,32
+cme_mix,hybrid,optional:562,,other,L1,167,10359
+cme_mix,hybrid,SecurityBook.cpp:227,,book logic,L1,115,7305
+cme_mix,hybrid,SecurityBook.cpp:236,,book logic,L1,78,4268
+cme_mix,hybrid,hashtable.h:2209,,order index,DRAM,5,2211
+cme_mix,hybrid,hashtable.h:879,,order index,fill buffer,20,1310
+cme_mix,hybrid,hashtable.h:2209,,order index,L3,24,1154
+cme_mix,hybrid,hashtable.h:2215,,order index,fill buffer,14,951
+cme_mix,hybrid,stl_function.h:378,,other,L3,18,862
+cme_mix,hybrid,[kernel],,kernel,L1,9,641
+cme_mix,hybrid,hashtable_policy.h:1071,,order index,L1,2,640
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:538,,other,L1,15,610
+cme_mix,hybrid,[kernel],,kernel,DRAM,2,602
+cme_mix,hybrid,:libstdc++.so.6.0.35[d9057],,other,fill buffer,5,540
+cme_mix,hybrid,hashtable_policy.h:1071,,order index,L3,11,536
+cme_mix,hybrid,SecurityBook.cpp:90,,book logic,fill buffer,11,505
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:536,,other,L1,13,493
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:486,,other,L1,11,453
+cme_mix,hybrid,stl_algo.h:533,,price levels,L3,10,449
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:535,,other,L1,12,420
+cme_mix,hybrid,[kernel],,kernel,L3,8,394
+cme_mix,hybrid,BookBench.cpp:152,Options,benchmark harness,fill buffer,1,373
+cme_mix,hybrid,hashtable.h:2205,,order index,L3,8,363
+cme_mix,hybrid,BookBench.cpp:137,Options,benchmark harness,fill buffer,1,363
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:483,,other,L1,9,358
+cme_mix,hybrid,BookBench.cpp:137,Options,benchmark harness,DRAM,1,356
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:485,,other,fill buffer,6,328
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:484,,other,L1,8,327
+cme_mix,hybrid,Order.h:54,Order,order queue,L1,1,323
+cme_mix,hybrid,hashtable_policy.h:584,,order index,fill buffer,7,316
+cme_mix,hybrid,Order.h:55,Order,order queue,L3,6,312
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:485,,other,L1,7,288
+cme_mix,hybrid,[kernel],,kernel,fill buffer,5,272
+cme_mix,hybrid,stl_list.h:801,,order queue,fill buffer,1,271
+cme_mix,hybrid,hashtable_policy.h:584,,order index,L3,6,263
+cme_mix,hybrid,hashtable.h:2591,,order index,L1,6,256
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:483,,other,fill buffer,5,251
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c7d8c],,other,fill buffer,6,240
+cme_mix,hybrid,hashtable_policy.h:1071,,order index,DRAM,1,236
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:537,,other,L1,6,227
+cme_mix,hybrid,LevelSearch.h:35,LevelPosition,price levels,L1,5,220
+cme_mix,hybrid,SecurityBook.cpp:210,,book logic,L1,5,220
+cme_mix,hybrid,:libstdc++.so.6.0.35[d9049],,other,L3,4,202
+cme_mix,hybrid,stl_list.h:2146,,order queue,L1,2,201
+cme_mix,hybrid,stl_list.h:604,,order queue,fill buffer,4,196
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:538,,other,L2,4,186
+cme_mix,hybrid,SecurityBook.cpp:90,,book logic,L3,4,181
+cme_mix,hybrid,hashtable.h:2580,,order index,fill buffer,4,178
+cme_mix,hybrid,memory_resource.h:171,,other,fill buffer,3,160
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:483,,other,L2,4,160
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:484,,other,fill buffer,2,159
+cme_mix,hybrid,hashtable.h:2209,,order index,fill buffer,3,152
+cme_mix,hybrid,stl_function.h:378,,other,fill buffer,3,150
+cme_mix,hybrid,SecurityBook.cpp:202,,book logic,fill buffer,3,148
+cme_mix,hybrid,hashtable.h:2488,,order index,L1,3,145
+cme_mix,hybrid,SecurityBook.cpp:191,,book logic,L3,3,143
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:486,,other,L2,3,142
+cme_mix,hybrid,SecurityBook.cpp:201,,book logic,fill buffer,3,133
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c7d8c],,other,L1,4,128
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:485,,other,L3,2,125
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:535,,other,fill buffer,2,119
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:536,,other,fill buffer,2,117
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:535,,other,L3,2,114
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:484,,other,L3,2,112
+cme_mix,hybrid,SecurityBook.cpp:94,,book logic,L1,3,111
+cme_mix,hybrid,stl_list.h:803,,order queue,L3,2,108
+cme_mix,hybrid,stl_list.h:803,,order queue,L1,2,107
+cme_mix,hybrid,:libstdc++.so.6.0.35[d9057],,other,L3,2,105
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:537,,other,fill buffer,2,105
+cme_mix,hybrid,stl_list.h:609,,order queue,fill buffer,2,105
+cme_mix,hybrid,SecurityBook.cpp:203,,book logic,L3,2,102
+cme_mix,hybrid,memory_resource.h:322,,other,L3,2,99
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:483,,other,L3,2,99
+cme_mix,hybrid,hashtable.h:811,,order index,fill buffer,2,95
+cme_mix,hybrid,hashtable.h:2763,,order index,L3,2,93
+cme_mix,hybrid,SecurityBook.cpp:92,,book logic,L1,2,92
+cme_mix,hybrid,stl_list.h:604,,order queue,L3,2,91
+cme_mix,hybrid,memory_resource.h:83,,other,L1,2,90
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:486,,other,fill buffer,2,88
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:536,,other,L2,2,87
+cme_mix,hybrid,stl_list.h:599,,order queue,fill buffer,2,87
+cme_mix,hybrid,hashtable.h:2490,,order index,L1,2,86
+cme_mix,hybrid,SecurityBook.cpp:60,,book logic,fill buffer,2,86
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:537,,other,L3,1,83
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c6d80],,other,L3,2,82
+cme_mix,hybrid,memory_resource.h:322,,other,fill buffer,2,76
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:536,,other,L3,1,74
+cme_mix,hybrid,SecurityBook.cpp:55,,book logic,L1,1,70
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:537,,other,L2,1,58
+cme_mix,hybrid,SecurityBook.cpp:60,,book logic,L1,1,56
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:486,,other,L3,1,53
+cme_mix,hybrid,hashtable_policy.h:366,,order index,L3,1,52
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c6da4],,other,L3,1,52
+cme_mix,hybrid,LevelSearch.h:22,LevelPosition,price levels,fill buffer,1,52
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c7d38],,other,fill buffer,1,51
+cme_mix,hybrid,BookBench.cpp:135,Options,benchmark harness,fill buffer,1,48
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c7d43],,other,L3,1,48
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c6cb7],,other,L1,1,48
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:535,,other,L2,1,45
+cme_mix,hybrid,:libstdc++.so.6.0.35[d9049],,other,fill buffer,1,43
+cme_mix,hybrid,:libstdc++.so.6.0.35[d90c4],,other,L3,1,41
+cme_mix,hybrid,OuterBook.h:32,OuterBook,instrument lookup,L3,1,41
+cme_mix,hybrid,stl_list.h:599,,order queue,L3,1,40
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c6ece],,other,L3,1,40
+cme_mix,hybrid,SecurityBook.cpp:203,,book logic,fill buffer,1,40
+cme_mix,hybrid,BookBench.cpp:162,Options,benchmark harness,L1,1,39
+cme_mix,hybrid,tuple:2887,,other,L1,1,37
+cme_mix,hybrid,stl_list.h:604,,order queue,L2,1,36
+cme_mix,hybrid,stl_list.h:680,,order queue,L1,1,35
+cme_mix,hybrid,tuple:2886,,other,L1,1,34
+cme_mix,hybrid,memmove-vec-unaligned-erms.S:485,,other,L2,1,33
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c7d46],,other,fill buffer,1,32
+cme_mix,hybrid,stl_list.h:801,,order queue,L1,1,32
+cme_mix,hybrid,:libstdc++.so.6.0.35[1c6e98],,other,fill buffer,1,32
+cme_mix,agg-flat,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,70,6653
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,53,2497
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,4,1379
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L1,23,855
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,L1,21,739
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L1,20,724
+cme_mix,agg-flat,AggregateSecurityBook.h:56,AggregateSecurityBook,book logic,fill buffer,1,715
+cme_mix,agg-flat,BookBench.cpp:135,Options,benchmark harness,fill buffer,1,687
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,L1,18,637
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,6,582
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,L1,14,563
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L1,15,535
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L1,13,515
+cme_mix,agg-flat,BookBench.cpp:135,Options,benchmark harness,DRAM,1,475
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L1,12,449
+cme_mix,agg-flat,[kernel],,kernel,L1,6,342
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,fill buffer,5,318
+cme_mix,agg-flat,AggregateLevels.h:32,SortedLevels,price levels,L1,1,296
+cme_mix,agg-flat,stl_vector.h:1264,,std::vector access,fill buffer,6,283
+cme_mix,agg-flat,AggregateSecurityBook.cpp:106,,book logic,fill buffer,5,230
+cme_mix,agg-flat,AggregateSecurityBook.cpp:16,,book logic,fill buffer,5,216
+cme_mix,agg-flat,AggregateSecurityBook.cpp:105,,book logic,fill buffer,4,209
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,fill buffer,3,193
+cme_mix,agg-flat,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,4,178
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L2,3,140
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L3,2,136
+cme_mix,agg-flat,LevelSearch.h:35,LevelPosition,price levels,L1,3,129
+cme_mix,agg-flat,stl_algo.h:533,,price levels,L3,3,127
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,fill buffer,2,111
+cme_mix,agg-flat,[kernel],,kernel,fill buffer,2,94
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L2,2,92
+cme_mix,agg-flat,AggregateSecurityBook.cpp:48,,book logic,fill buffer,2,91
+cme_mix,agg-flat,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,2,90
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,L2,2,82
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,fill buffer,1,82
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L2,2,76
+cme_mix,agg-flat,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,1,76
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L3,1,68
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,L3,1,57
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,fill buffer,1,56
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L2,1,55
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L3,1,53
+cme_mix,agg-flat,AggregateSecurityBook.cpp:48,,book logic,L3,1,52
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,L2,1,50
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L3,1,48
+cme_mix,agg-flat,[kernel],,kernel,L3,1,45
+cme_mix,agg-flat,AggregateLevels.h:22,SortedLevels,price levels,fill buffer,1,45
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,fill buffer,1,45
+cme_mix,agg-flat,AggregateSecurityBook.cpp:57,,book logic,L1,1,43
+cme_mix,agg-flat,stl_algo.h:533,,price levels,fill buffer,1,42
+cme_mix,agg-flat,LevelSearch.h:22,LevelPosition,price levels,fill buffer,1,39
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L2,1,36
+cme_mix,agg-flat,optional:213,,other,L1,1,35
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,L1,1,32
+cme_mix,ladder,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,65,6834
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,9,2789
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,44,2090
+cme_mix,ladder,stl_construct.h:110,,other,fill buffer,15,1853
+cme_mix,ladder,[kernel],,kernel,L1,24,1652
+cme_mix,ladder,BookBench.cpp:143,Options,benchmark harness,fill buffer,2,1414
+cme_mix,ladder,memmove-vec-unaligned-erms.S:755,,other,L1,3,1198
+cme_mix,ladder,memmove-vec-unaligned-erms.S:757,,other,L1,5,989
+cme_mix,ladder,[kernel],,kernel,fill buffer,5,828
+cme_mix,ladder,memmove-vec-unaligned-erms.S:758,,other,L1,2,679
+cme_mix,ladder,[kernel],,kernel,DRAM,2,583
+cme_mix,ladder,memmove-vec-unaligned-erms.S:760,,other,fill buffer,1,448
+cme_mix,ladder,AggregateSecurityBook.cpp:48,,book logic,fill buffer,2,431
+cme_mix,ladder,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,9,428
+cme_mix,ladder,AggregateSecurityBook.h:56,AggregateSecurityBook,book logic,fill buffer,1,413
+cme_mix,ladder,BookBench.cpp:135,Options,benchmark harness,fill buffer,1,395
+cme_mix,ladder,AggregateSecurityBook.cpp:48,,book logic,DRAM,1,356
+cme_mix,ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,DRAM,2,351
+cme_mix,ladder,memmove-vec-unaligned-erms.S:756,,other,L1,1,264
+cme_mix,ladder,memmove-vec-unaligned-erms.S:660,,other,DRAM,1,239
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,5,228
+cme_mix,ladder,memmove-vec-unaligned-erms.S:761,,other,L1,4,221
+cme_mix,ladder,memmove-vec-unaligned-erms.S:660,,other,fill buffer,3,197
+cme_mix,ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,4,169
+cme_mix,ladder,memmove-vec-unaligned-erms.S:660,,other,L3,2,141
+cme_mix,ladder,stl_vector.h:1263,,std::vector access,fill buffer,3,136
+cme_mix,ladder,stl_construct.h:110,,other,DRAM,1,136
+cme_mix,ladder,[kernel],,kernel,L3,3,134
+cme_mix,ladder,AggregateSecurityBook.cpp:16,,book logic,fill buffer,3,116
+cme_mix,ladder,OrderIndex.h:163,BasicFlatOrderIndex,order index,fill buffer,1,98
+cme_mix,ladder,AggregateLevels.h:172,PriceLadder,price levels,L3,2,91
+cme_mix,ladder,memmove-vec-unaligned-erms.S:760,,other,L1,2,85
+cme_mix,ladder,memmove-vec-unaligned-erms.S:590,,other,fill buffer,1,84
+cme_mix,ladder,AggregateSecurityBook.cpp:105,,book logic,fill buffer,2,83
+cme_mix,ladder,OrderIndex.h:105,BasicFlatOrderIndex,order index,L1,1,75
+cme_mix,ladder,AggregateSecurityBook.cpp:106,,book logic,L1,1,53
+cme_mix,ladder,stl_construct.h:110,,other,L3,1,52
+cme_mix,ladder,AggregateSecurityBook.cpp:106,,book logic,fill buffer,1,43
+cme_mix,ladder,AggregateLevels.h:156,PriceLadder,price levels,L3,1,40
+cme_mix,pooled-ladder,PooledBook.h:504,PooledBook,order queue,L1,37,4482
+cme_mix,pooled-ladder,PooledBook.h:31,SlotIndex,order index,L3,39,2184
+cme_mix,pooled-ladder,PooledBook.h:31,SlotIndex,order index,DRAM,7,1789
+cme_mix,pooled-ladder,PooledBook.h:503,PooledBook,order queue,L1,25,1337
+cme_mix,pooled-ladder,[kernel],,kernel,L1,18,1154
+cme_mix,pooled-ladder,PooledBook.h:45,SlotIndex,order index,DRAM,3,1154
+cme_mix,pooled-ladder,PooledBook.h:505,PooledBook,order queue,L1,19,922
+cme_mix,pooled-ladder,PooledBook.h:524,PooledBook,order queue,L1,14,887
+cme_mix,pooled-ladder,PooledBook.h:502,PooledBook,order queue,fill buffer,18,871
+cme_mix,pooled-ladder,PooledBook.h:229,LadderSlots,price levels,L1,11,831
+cme_mix,pooled-ladder,PooledBook.h:514,PooledBook,order queue,L1,13,725
+cme_mix,pooled-ladder,BookBench.cpp:135,Options,benchmark harness,fill buffer,2,631
+cme_mix,pooled-ladder,memmove-vec-unaligned-erms.S:590,,other,DRAM,1,612
+cme_mix,pooled-ladder,PooledBook.h:47,SlotIndex,order index,fill buffer,12,611
+cme_mix,pooled-ladder,PooledBook.h:334,PooledBook,order queue,L1,2,503
+cme_mix,pooled-ladder,PooledBook.h:45,SlotIndex,order index,L3,10,500
+cme_mix,pooled-ladder,PooledBook.h:514,PooledBook,order queue,fill buffer,2,471
+cme_mix,pooled-ladder,BookBench.cpp:137,Options,benchmark harness,fill buffer,2,431
+cme_mix,pooled-ladder,BookBench.cpp:137,Options,benchmark harness,DRAM,1,363
+cme_mix,pooled-ladder,stl_construct.h:133,,other,fill buffer,8,355
+cme_mix,pooled-ladder,BookBench.cpp:143,Options,benchmark harness,DRAM,1,351
+cme_mix,pooled-ladder,BookBench.cpp:135,Options,benchmark harness,DRAM,1,346
+cme_mix,pooled-ladder,BookBench.cpp:158,Options,benchmark harness,L1,8,344
+cme_mix,pooled-ladder,BookBench.cpp:143,Options,benchmark harness,fill buffer,1,340
+cme_mix,pooled-ladder,BookBench.cpp:252,ThroughputResult,benchmark harness,DRAM,1,336
+cme_mix,pooled-ladder,[kernel],,kernel,DRAM,1,280
+cme_mix,pooled-ladder,PooledBook.h:64,SlotIndex,order index,DRAM,1,268
+cme_mix,pooled-ladder,PooledBook.h:331,PooledBook,order queue,fill buffer,1,262
+cme_mix,pooled-ladder,PooledBook.h:36,SlotIndex,order index,L1,4,230
+cme_mix,pooled-ladder,memmove-vec-unaligned-erms.S:590,,other,fill buffer,3,211
+cme_mix,pooled-ladder,PooledBook.h:360,PooledBook,order queue,fill buffer,4,206
+cme_mix,pooled-ladder,[kernel],,kernel,fill buffer,2,170
+cme_mix,pooled-ladder,[kernel],,kernel,L3,3,161
+cme_mix,pooled-ladder,memmove-vec-unaligned-erms.S:660,,other,L3,1,111
+cme_mix,pooled-ladder,PooledBook.h:515,PooledBook,order queue,fill buffer,2,99
+cme_mix,pooled-ladder,PooledBook.h:504,PooledBook,order queue,fill buffer,1,93
+cme_mix,pooled-ladder,PooledBook.h:31,SlotIndex,order index,fill buffer,2,93
+cme_mix,pooled-ladder,memmove-vec-unaligned-erms.S:660,,other,fill buffer,2,90
+cme_mix,pooled-ladder,PooledBook.h:64,SlotIndex,order index,L3,2,89
+cme_mix,pooled-ladder,PooledBook.h:445,PooledBook,order queue,L3,2,80
+cme_mix,pooled-ladder,PooledBook.h:324,PooledBook,order queue,L3,2,80
+cme_mix,pooled-ladder,PooledBook.h:27,SlotIndex,order index,L1,1,73
+cme_mix,pooled-ladder,PooledBook.h:502,PooledBook,order queue,L1,2,71
+cme_mix,pooled-ladder,PooledBook.h:324,PooledBook,order queue,fill buffer,1,65
+cme_mix,pooled-ladder,memmove-vec-unaligned-erms.S:660,,other,L2,1,61
+cme_mix,pooled-ladder,PooledBook.h:480,PooledBook,order queue,L1,1,58
+cme_mix,pooled-ladder,PooledBook.h:334,PooledBook,order queue,L3,1,50
+cme_mix,pooled-ladder,PooledBook.h:229,LadderSlots,price levels,L3,1,50
+cme_mix,pooled-ladder,PooledBook.h:480,PooledBook,order queue,L3,1,47
+cme_mix,pooled-ladder,PooledBook.h:332,PooledBook,order queue,fill buffer,1,46
+cme_mix,pooled-ladder,PooledBook.h:516,PooledBook,order queue,L1,1,43
+cme_mix,pooled-ladder,stl_vector.h:1283,,std::vector access,fill buffer,1,43
+cme_mix,pooled-ladder,PooledBook.h:184,LadderSlots,price levels,L3,1,40
+cme_mix,pooled-ladder,PooledBook.h:64,SlotIndex,order index,fill buffer,1,39
+cme_mix,pooled-ladder,PooledBook.h:517,PooledBook,order queue,L1,1,38
+cme_mix,pooled-ladder,PooledBook.h:97,SlotIndex,order index,L3,1,36
+cme_mix,pooled-ladder,stl_vector.h:1119,,std::vector access,L1,1,33
+cme_mix,lazy-handle-ladder,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,70,7120
+cme_mix,lazy-handle-ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,59,3009
+cme_mix,lazy-handle-ladder,stl_construct.h:110,,other,fill buffer,20,2887
+cme_mix,lazy-handle-ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,9,2815
+cme_mix,lazy-handle-ladder,[kernel],,kernel,L1,34,2590
+cme_mix,lazy-handle-ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,11,1961
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:758,,other,L1,6,1715
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:756,,other,L1,3,1366
+cme_mix,lazy-handle-ladder,stl_construct.h:133,,other,fill buffer,11,1360
+cme_mix,lazy-handle-ladder,stl_construct.h:110,,other,L1,2,1191
+cme_mix,lazy-handle-ladder,vector.tcc:114,,std::vector access,fill buffer,13,1158
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:398,LazyQueueBook,book logic,fill buffer,7,908
+cme_mix,lazy-handle-ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,1,789
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:760,,other,fill buffer,2,742
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:757,,other,L1,2,716
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:755,,other,L1,3,700
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:761,,other,fill buffer,1,697
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:340,LazyQueueBook,book logic,fill buffer,7,595
+cme_mix,lazy-handle-ladder,stl_construct.h:110,,other,DRAM,1,567
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:333,LazyQueueBook,book logic,DRAM,2,538
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:234,LazyQueueBook,book logic,fill buffer,5,516
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:387,LazyQueueBook,book logic,fill buffer,9,452
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:349,LazyQueueBook,book logic,DRAM,1,436
+cme_mix,lazy-handle-ladder,:libstdc++.so.6.0.35[a8da4],,other,L2,1,432
+cme_mix,lazy-handle-ladder,[kernel],,kernel,fill buffer,2,381
+cme_mix,lazy-handle-ladder,stl_vector.h:112,,std::vector access,fill buffer,2,344
+cme_mix,lazy-handle-ladder,[kernel],,kernel,L3,3,324
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:399,,other,fill buffer,1,306
+cme_mix,lazy-handle-ladder,BookBench.cpp:158,Options,benchmark harness,L1,2,303
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:395,,other,fill buffer,1,293
+cme_mix,lazy-handle-ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,DRAM,1,280
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:483,,other,DRAM,1,257
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:236,LazyQueueBook,book logic,L3,5,252
+cme_mix,lazy-handle-ladder,[kernel],,kernel,DRAM,1,237
+cme_mix,lazy-handle-ladder,AggregateLevels.h:156,PriceLadder,price levels,L3,5,219
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:233,LazyQueueBook,book logic,fill buffer,4,199
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:590,,other,fill buffer,1,196
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:660,,other,fill buffer,2,184
+cme_mix,lazy-handle-ladder,vector.tcc:114,,std::vector access,L3,4,162
+cme_mix,lazy-handle-ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,4,157
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:590,,other,L3,1,153
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:387,LazyQueueBook,book logic,L3,3,144
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:236,LazyQueueBook,book logic,fill buffer,2,136
+cme_mix,lazy-handle-ladder,OrderIndex.h:162,BasicFlatOrderIndex,order index,fill buffer,2,124
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:401,,other,fill buffer,1,124
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:340,LazyQueueBook,book logic,L3,2,115
+cme_mix,lazy-handle-ladder,malloc.c:4426,,other,L2,1,110
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:760,,other,L1,2,99
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:343,LazyQueueBook,book logic,L1,2,88
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:349,LazyQueueBook,book logic,fill buffer,2,84
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:114,HandleSlotQueues,order queue,L3,2,84
+cme_mix,lazy-handle-ladder,BookBench.cpp:135,Options,benchmark harness,L1,1,78
+cme_mix,lazy-handle-ladder,vector.tcc:114,,std::vector access,L1,2,64
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:535,,other,fill buffer,1,61
+cme_mix,lazy-handle-ladder,stl_vector.h:1119,,std::vector access,L1,1,58
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:485,,other,fill buffer,1,54
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:660,,other,L2,1,54
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:343,,other,fill buffer,1,54
+cme_mix,lazy-handle-ladder,malloc.c:4417,,other,L3,1,54
+cme_mix,lazy-handle-ladder,stl_vector.h:113,,std::vector access,L3,1,50
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:402,,other,L1,1,49
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:386,,other,L3,1,49
+cme_mix,lazy-handle-ladder,BookBench.cpp:252,ThroughputResult,benchmark harness,L1,1,48
+cme_mix,lazy-handle-ladder,stl_construct.h:110,,other,L3,1,44
+cme_mix,lazy-handle-ladder,memmove-vec-unaligned-erms.S:660,,other,L1,1,43
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:147,HandleSlotQueues,order queue,fill buffer,1,43
+cme_mix,lazy-handle-ladder,malloc.c:3034,,other,L3,1,40
+cme_mix,lazy-handle-ladder,stl_iterator.h:1059,,other,L3,1,39
+cme_mix,lazy-handle-ladder,stl_vector.h:113,,std::vector access,fill buffer,1,38
+cme_mix,lazy-handle-ladder,stl_construct.h:110,,other,L2,1,38
+cme_mix,lazy-handle-ladder,stl_construct.h:133,,other,L1,1,38
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:387,LazyQueueBook,book logic,L1,1,36
+cme_mix,lazy-handle-ladder,AggregateLevels.h:156,PriceLadder,price levels,L2,1,35
+cme_mix,lazy-handle-ladder,AggregateLevels.h:195,PriceLadder,price levels,L1,1,34
+cme_mix,lazy-handle-ladder,malloc.c:3930,,other,L1,1,34
+cme_mix,lazy-handle-ladder,LazyQueueBook.h:340,LazyQueueBook,book logic,L2,1,32
+esz6,tree,optional:562,,other,L1,32,1855
+esz6,tree,SecurityBook.cpp:236,,book logic,L1,16,874
+esz6,tree,SecurityBook.cpp:227,,book logic,L1,14,843
+esz6,tree,[kernel],,kernel,DRAM,1,504
+esz6,tree,hashtable.h:2488,,order index,L1,8,268
+esz6,tree,stl_function.h:378,,other,L3,4,178
+esz6,tree,[kernel],,kernel,L1,2,157
+esz6,tree,stl_list.h:604,,order queue,fill buffer,2,87
+esz6,tree,hashtable_policy.h:1071,,order index,L3,1,52
+esz6,tree,hashtable.h:879,,order index,fill buffer,1,50
+esz6,tree,stl_tree.h:1425,,price levels,L3,1,43
+esz6,tree,stl_function.h:378,,other,fill buffer,1,42
+esz6,tree,hashtable.h:2215,,order index,fill buffer,1,42
+esz6,tree,[kernel],,kernel,L3,1,41
+esz6,tree,stl_tree.h:2604,,price levels,L1,1,40
+esz6,tree,Order.cpp:40,,other,L1,1,35
+esz6,hybrid,optional:562,,other,L1,31,1796
+esz6,hybrid,SecurityBook.cpp:227,,book logic,L1,20,1120
+esz6,hybrid,SecurityBook.cpp:236,,book logic,L1,10,537
+esz6,hybrid,hashtable.h:2205,,order index,L3,4,181
+esz6,hybrid,hashtable.h:2209,,order index,L3,3,142
+esz6,hybrid,hashtable.h:2215,,order index,fill buffer,2,116
+esz6,hybrid,memmove-vec-unaligned-erms.S:536,,other,L1,3,102
+esz6,hybrid,memmove-vec-unaligned-erms.S:537,,other,L1,2,91
+esz6,hybrid,[kernel],,kernel,L1,1,74
+esz6,hybrid,memmove-vec-unaligned-erms.S:538,,other,L1,2,68
+esz6,hybrid,memmove-vec-unaligned-erms.S:538,,other,L2,1,52
+esz6,hybrid,stl_list.h:604,,order queue,fill buffer,1,52
+esz6,hybrid,stl_function.h:378,,other,fill buffer,1,49
+esz6,hybrid,SecurityBook.h:63,BasicSecurityBook,book logic,L1,1,49
+esz6,hybrid,stl_list.h:604,,order queue,L3,1,46
+esz6,hybrid,memmove-vec-unaligned-erms.S:486,,other,L1,1,44
+esz6,hybrid,memmove-vec-unaligned-erms.S:535,,other,L1,1,44
+esz6,hybrid,:libstdc++.so.6.0.35[d90c4],,other,L3,1,42
+esz6,hybrid,hashtable.h:2768,,order index,L1,1,41
+esz6,hybrid,SecurityBook.cpp:94,,book logic,L1,1,32
+esz6,agg-flat,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,19,1210
+esz6,agg-flat,BookBench.cpp:135,Options,benchmark harness,fill buffer,1,348
+esz6,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,5,234
+esz6,agg-flat,[kernel],,kernel,L3,1,91
+esz6,agg-flat,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,2,87
+esz6,agg-flat,[kernel],,kernel,L1,1,55
+esz6,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,1,52
+esz6,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L3,1,49
+esz6,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L1,1,41
+esz6,agg-flat,stl_algo.h:533,,price levels,L3,1,39
+esz6,agg-flat,LevelSearch.h:35,LevelPosition,price levels,L1,1,35
+esz6,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L1,1,34
+esz6,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L1,1,32
+esz6,ladder,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,17,1216
+esz6,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,5,246
+esz6,ladder,stl_vector.h:1119,,std::vector access,L1,1,80
+esz6,ladder,memmove-vec-unaligned-erms.S:590,,other,L1,1,68
+esz6,ladder,AggregateSecurityBook.cpp:48,,book logic,fill buffer,1,59
+esz6,ladder,[kernel],,kernel,fill buffer,1,56
+esz6,ladder,AggregateSecurityBook.cpp:16,,book logic,fill buffer,1,47
+esz6,ladder,AggregateLevels.h:156,PriceLadder,price levels,L3,1,45
+esz6,ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,1,40
+esz6,pooled-ladder,BookBench.cpp:252,ThroughputResult,benchmark harness,fill buffer,1,674
+esz6,pooled-ladder,[kernel],,kernel,fill buffer,2,517
+esz6,pooled-ladder,PooledBook.h:31,SlotIndex,order index,L3,8,425
+esz6,pooled-ladder,PooledBook.h:505,PooledBook,order queue,L1,6,309
+esz6,pooled-ladder,PooledBook.h:504,PooledBook,order queue,L1,4,196
+esz6,pooled-ladder,PooledBook.h:503,PooledBook,order queue,L1,4,187
+esz6,pooled-ladder,PooledBook.h:47,SlotIndex,order index,fill buffer,2,102
+esz6,pooled-ladder,PooledBook.h:514,PooledBook,order queue,L1,1,92
+esz6,pooled-ladder,PooledBook.h:502,PooledBook,order queue,fill buffer,2,90
+esz6,pooled-ladder,memmove-vec-unaligned-erms.S:660,,other,L3,1,86
+esz6,pooled-ladder,PooledBook.h:524,PooledBook,order queue,L1,2,82
+esz6,pooled-ladder,PooledBook.h:360,PooledBook,order queue,fill buffer,1,55
+esz6,pooled-ladder,PooledBook.h:45,SlotIndex,order index,L3,1,53
+esz6,pooled-ladder,stl_vector.h:1119,,std::vector access,fill buffer,1,44
+esz6,pooled-ladder,PooledBook.h:229,LadderSlots,price levels,L1,1,42
+esz6,pooled-ladder,PooledBook.h:64,SlotIndex,order index,L3,1,41
+esz6,pooled-ladder,PooledBook.h:31,SlotIndex,order index,L2,1,33
+esz6,pooled-ladder,memmove-vec-unaligned-erms.S:590,,other,fill buffer,1,33
+esz6,lazy-handle-ladder,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,15,1052
+esz6,lazy-handle-ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,9,417
+esz6,lazy-handle-ladder,[kernel],,kernel,DRAM,1,382
+esz6,lazy-handle-ladder,LazyQueueBook.h:212,LazyQueueBook,book logic,fill buffer,1,188
+esz6,lazy-handle-ladder,LazyQueueBook.h:340,LazyQueueBook,book logic,fill buffer,2,94
+esz6,lazy-handle-ladder,[kernel],,kernel,L1,2,81
+esz6,lazy-handle-ladder,memmove-vec-unaligned-erms.S:590,,other,L3,1,72
+esz6,lazy-handle-ladder,memmove-vec-unaligned-erms.S:660,,other,L1,1,60
+esz6,lazy-handle-ladder,malloc.c:3034,,other,L3,1,51
+esz6,lazy-handle-ladder,stl_construct.h:110,,other,fill buffer,1,44
+esz6,lazy-handle-ladder,stl_vector.h:1283,,std::vector access,L1,1,42
+esz6,lazy-handle-ladder,AggregateLevels.h:156,PriceLadder,price levels,L3,1,40
+esz6,lazy-handle-ladder,AggregateLevels.h:195,PriceLadder,price levels,L1,1,40

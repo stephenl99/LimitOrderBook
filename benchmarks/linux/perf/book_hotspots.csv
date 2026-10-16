@@ -1,0 +1,68 @@
+scenario,impl,symbol,self_pct
+deep,tree,BasicSecurityBook<TreeLevels>::delete_order(unsigned long),9.91
+deep,tree,"BasicSecurityBook<TreeLevels>::level_for(Side, long)",9.54
+deep,tree,"std::pair<std::__detail::_Node_iterator<std::pair<unsigned long const, OrderIterator>, false, false>, bool> std::_Hashtable<unsigned long, std::pair<unsigned long const, OrderIterator>, std::pmr::polymorphic_allocator<std::pair<unsigned long const, OrderIterator> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_emplace_uniq<unsigned long const&, OrderIterator>(unsigned long const&, OrderIterator&&) [clone .isra.0]",8.73
+deep,tree,"std::_Hashtable<unsigned long, std::pair<unsigned long const, OrderIterator>, std::pmr::polymorphic_allocator<std::pair<unsigned long const, OrderIterator> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::erase(std::__detail::_Node_const_iterator<std::pair<unsigned long const, OrderIterator>, false, false>) [clone .isra.0]",6.52
+deep,tree,BasicSecurityBook<TreeLevels>::best_bid() const,4.34
+deep,tree,BasicSecurityBook<TreeLevels>::best_ask() const,4.11
+deep,tree,"(anonymous namespace)::ThroughputResult (anonymous namespace)::run_throughput<OuterBook<BasicSecurityBook<TreeLevels>, 64ul> >(OrderFlow const&)",4.08
+deep,tree,"std::_Hashtable<unsigned long, std::pair<unsigned long const, OrderIterator>, std::pmr::polymorphic_allocator<std::pair<unsigned long const, OrderIterator> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_insert_unique_node(unsigned long, unsigned long, std::__detail::_Hash_node<std::pair<unsigned long const, OrderIterator>, false>*, unsigned long)",3.17
+deep,tree,0x00000000001c6e57,3.05
+deep,tree,"std::_Hashtable<unsigned long, std::pair<unsigned long const, OrderIterator>, std::pmr::polymorphic_allocator<std::pair<unsigned long const, OrderIterator> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::find(unsigned long const&)",2.71
+deep,tree,"std::pmr::unsynchronized_pool_resource::do_allocate(unsigned long, unsigned long)",2.56
+deep,tree,0x00000000001c7e3f,2.06
+deep,tree,BasicSecurityBook<TreeLevels>::remove_order(unsigned long),1.89
+deep,tree,"std::pmr::unsynchronized_pool_resource::do_deallocate(void*, unsigned long, unsigned long)",1.75
+deep,tree,0x00000000001c6eb4,1.63
+deep,tree,0x00000000001c7dcd,1.41
+deep,tree,"std::__cxx11::list<Order, std::pmr::polymorphic_allocator<Order> >::insert(std::_List_const_iterator<Order>, Order const&)",1.26
+deep,tree,0x00000000001c7d90,1.19
+deep,tree,0x00000000001c7e45,1.01
+deep,tree,0x00000000001c7e63,0.94
+deep,tree,"BasicSecurityBook<TreeLevels>::erase_level_if_empty(Level const&, Side, long)",0.94
+deep,tree,std::__detail::_List_node_base::_M_unhook(),0.80
+deep,tree,BasicSecurityBook<TreeLevels>::insert(Order const&),0.77
+deep,tree,0x00000000001c7dcb,0.75
+deep,tree,std::__detail::_List_node_base::_M_hook(std::__detail::_List_node_base*),0.71
+deep,tree,"Order::Order(unsigned long, unsigned int, unsigned long, char, long, unsigned int)",0.69
+deep,tree,0x00000000001c6e72,0.67
+deep,tree,0x00000000001c6cb7,0.67
+deep,tree,"BasicSecurityBook<TreeLevels>::reduce_order_quantity(unsigned long, unsigned int, char const*)",0.64
+deep,tree,Order::Order(Order const&),0.64
+deep,tree,0x00000000001c7e12,0.64
+deep,tree,0x00000000001c6cbb,0.62
+deep,tree,0x00000000001c6cb4,0.61
+deep,tree,0x00000000001c7e43,0.59
+deep,tree,0x00000000001c6cb1,0.57
+deep,tree,0x00000000001c7e24,0.54
+deep,tree,0x00000000001c7df1,0.53
+deep,tree,0x00000000001c7d96,0.52
+deep,tree,0x00000000001c6cc5,0.50
+deep,agg-flat,"AggregateSecurityBook<BasicSortedAggregateLevels<8ul>, BasicFlatOrderIndex<MultiplicativeHash> >::add_resting(unsigned long, Side, long, unsigned int)",36.18
+deep,agg-flat,"LevelPosition locate_level<std::greater<void>, 8ul, std::vector<SortedLevels<std::greater<void>, 8ul>::Entry, std::allocator<SortedLevels<std::greater<void>, 8ul>::Entry> > >(std::vector<SortedLevels<std::greater<void>, 8ul>::Entry, std::allocator<SortedLevels<std::greater<void>, 8ul>::Entry> > const&, long) [clone .isra.0]",14.92
+deep,agg-flat,"AggregateSecurityBook<BasicSortedAggregateLevels<8ul>, BasicFlatOrderIndex<MultiplicativeHash> >::delete_order(unsigned long)",12.92
+deep,agg-flat,"LevelPosition locate_level<std::less<void>, 8ul, std::vector<SortedLevels<std::less<void>, 8ul>::Entry, std::allocator<SortedLevels<std::less<void>, 8ul>::Entry> > >(std::vector<SortedLevels<std::less<void>, 8ul>::Entry, std::allocator<SortedLevels<std::less<void>, 8ul>::Entry> > const&, long) [clone .isra.0]",11.14
+deep,agg-flat,"AggregateSecurityBook<BasicSortedAggregateLevels<8ul>, BasicFlatOrderIndex<MultiplicativeHash> >::remove_resting(BasicFlatOrderIndex<MultiplicativeHash>::Handle)",9.57
+deep,agg-flat,"(anonymous namespace)::ThroughputResult (anonymous namespace)::run_throughput<OuterBook<AggregateSecurityBook<BasicSortedAggregateLevels<8ul>, BasicFlatOrderIndex<MultiplicativeHash> >, 64ul> >(OrderFlow const&)",8.81
+deep,agg-flat,"SortedLevels<std::less<void>, 8ul>::add(long, unsigned int)",2.57
+deep,agg-flat,"AggregateSecurityBook<BasicSortedAggregateLevels<8ul>, BasicFlatOrderIndex<MultiplicativeHash> >::reduce_order_quantity(unsigned long, unsigned int, char const*)",2.01
+deep,agg-flat,"SortedLevels<std::greater<void>, 8ul>::add(long, unsigned int)",1.72
+deep,ladder,"AggregateSecurityBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash> >::add_resting(unsigned long, Side, long, unsigned int)",36.45
+deep,ladder,"AggregateSecurityBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash> >::delete_order(unsigned long)",21.05
+deep,ladder,"AggregateSecurityBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash> >::remove_resting(BasicFlatOrderIndex<MultiplicativeHash>::Handle)",17.71
+deep,ladder,"void for_each_book_variant<(anonymous namespace)::with_book<(anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, (anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)::{lambda(auto:1, BookVariantInfo const&)#1}>((anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)",10.17
+deep,ladder,"PriceLadder<std::greater<void> >::add(long, unsigned int)",6.46
+deep,ladder,"PriceLadder<std::less<void> >::add(long, unsigned int)",4.74
+deep,ladder,"AggregateSecurityBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash> >::reduce_order_quantity(unsigned long, unsigned int, char const*)",2.99
+deep,pooled-ladder,"pooled::PooledBook<pooled::LadderLevels>::add_order(unsigned long, Side, long, unsigned int)",44.39
+deep,pooled-ladder,pooled::PooledBook<pooled::LadderLevels>::remove_slot(unsigned int),26.58
+deep,pooled-ladder,"void (anonymous namespace)::apply<pooled::PooledBook<pooled::LadderLevels> >(pooled::PooledBook<pooled::LadderLevels>&, BookOp const&)",17.46
+deep,pooled-ladder,"void for_each_book_variant<(anonymous namespace)::with_book<(anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, (anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)::{lambda(auto:1, BookVariantInfo const&)#1}>((anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)",11.57
+deep,lazy-handle-ladder,"LazyQueueBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash>, HandleSlotQueues>::add_resting(unsigned long, Side, long, unsigned int)",50.54
+deep,lazy-handle-ladder,"void (anonymous namespace)::apply<LazyQueueBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash>, HandleSlotQueues> >(LazyQueueBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash>, HandleSlotQueues>&, BookOp const&)",18.98
+deep,lazy-handle-ladder,BasicFlatOrderIndex<MultiplicativeHash>::find(unsigned long) const,11.38
+deep,lazy-handle-ladder,"void for_each_book_variant<(anonymous namespace)::with_book<(anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, (anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)::{lambda(auto:1, BookVariantInfo const&)#1}>((anonymous namespace)::throughput((anonymous namespace)::Options const&, OrderFlow const&)::{lambda<typename $T0>(std::type_identity<$T0>)#1}&&)",4.85
+deep,lazy-handle-ladder,"PriceLadder<std::less<void> >::add(long, unsigned int)",4.41
+deep,lazy-handle-ladder,"PriceLadder<std::greater<void> >::add(long, unsigned int)",4.00
+deep,lazy-handle-ladder,"LazyQueueBook<LadderLevels, BasicFlatOrderIndex<MultiplicativeHash>, HandleSlotQueues>::reduce(unsigned long, unsigned int)",2.34
+deep,lazy-handle-ladder,"PriceLadder<std::less<void> >::remove(long, unsigned int)",0.85

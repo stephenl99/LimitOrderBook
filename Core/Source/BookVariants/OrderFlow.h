@@ -16,13 +16,15 @@ enum class BookOpType : std::uint8_t {
     Cancel,
     Delete,
     Replace,
+    Modify,
+    Clear,
 };
 
-inline constexpr std::size_t kBookOpTypes = 5;
+inline constexpr std::size_t kBookOpTypes = 7;
 
 constexpr std::string_view book_op_name(BookOpType type)
 {
-    constexpr std::string_view names[kBookOpTypes] = {"add", "execute", "cancel", "delete", "replace"};
+    constexpr std::string_view names[kBookOpTypes] = {"add", "execute", "cancel", "delete", "replace", "modify", "clear"};
     return names[static_cast<std::size_t>(type)];
 }
 
@@ -61,3 +63,7 @@ struct FlowConfig {
 OrderFlow generate_order_flow(const FlowConfig& config);
 
 std::expected<OrderFlow, std::string> load_itch_order_flow(const std::filesystem::path& path);
+
+void save_order_flow(const OrderFlow& flow, const std::filesystem::path& path);
+
+OrderFlow read_order_flow(const std::filesystem::path& path);

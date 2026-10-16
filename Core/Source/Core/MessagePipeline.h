@@ -4,18 +4,23 @@
 #include <atomic>
 #include <concepts>
 #include <cstddef>
+#include <optional>
 #include <thread>
 #include <type_traits>
 #include <utility>
 
 #include "CircularBuffer.h"
 #include "IdleStrategy.h"
+#include "ThreadPinning.h"
 // invocable to make sure the handler can accept the message as an arg
-template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle>
+template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle,
+          template <Usable, std::size_t> class Buffer = CircularBuffer>
 class MessagePipeline {
 public:
-    explicit MessagePipeline(Handler handler, std::size_t max_batch = 1)
+    explicit MessagePipeline(Handler handler, std::size_t max_batch = 1,
+                             std::optional<std::size_t> consumer_cpu_slot = std::nullopt)
         : max_batch_(std::clamp<std::size_t>(max_batch, 1, Capacity)),
+          consumer_cpu_slot_(consumer_cpu_slot),
           handler_(std::move(handler)),
           consumer_([this] { consume(); })
     {
@@ -46,6 +51,9 @@ public:
 private:
     void consume()
     {
+        if (consumer_cpu_slot_) {
+            pin_current_thread(*consumer_cpu_slot_);
+        }
         while (true) {
             if (take()) {
                 consumer_idle_.reset();
@@ -71,11 +79,12 @@ private:
         return queue_.pop_batch(handler_, max_batch_) != 0;
     }
 
-    CircularBuffer<Message, Capacity> queue_;
+    Buffer<Message, Capacity> queue_;
     alignas(kCacheLineSize) Idle producer_idle_;
     alignas(kCacheLineSize) Idle consumer_idle_;
     std::atomic<bool> producer_done_ = false;
     std::size_t max_batch_;
+    std::optional<std::size_t> consumer_cpu_slot_;
     Handler handler_;
     std::thread consumer_;
 };

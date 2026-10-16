@@ -19,10 +19,6 @@
 #include <pthread/qos.h>
 #endif
 
-#ifdef __linux__
-#include <pthread.h>
-#include <sched.h>
-#endif
 
 #include "Baseline/ItchMutexDecoder.h"
 #include "Baseline/ItchSingleThreadDecoder.h"
@@ -32,6 +28,7 @@
 #include "Core/MappedFile.h"
 #include "Core/MessagePipeline.h"
 #include "Core/SequencedBuffer.h"
+#include "Core/ThreadPinning.h"
 #include "Core/ItchShardedDecoder.h"
 #include "Message/Itch/DecodeMessage.h"
 #include "Message/Itch/FrameReader.h"
@@ -49,41 +46,6 @@ enum class ThreadRole : std::size_t {
     Producer = 0,
     Consumer = 1,
 };
-
-std::vector<int> pinned_cpus()
-{
-    std::vector<int> cpus;
-    const char* list = std::getenv("LOB_CPUS");
-    if (list == nullptr) {
-        return cpus;
-    }
-    std::string text = list;
-    std::size_t start = 0;
-    while (start < text.size()) {
-        const std::size_t end = std::min(text.find(',', start), text.size());
-        if (end > start) {
-            cpus.push_back(std::stoi(text.substr(start, end - start)));
-        }
-        start = end + 1;
-    }
-    return cpus;
-}
-
-void pin_current_thread(std::size_t slot)
-{
-#ifdef __linux__
-    static const std::vector<int> cpus = pinned_cpus();
-    if (cpus.empty()) {
-        return;
-    }
-    cpu_set_t set;
-    CPU_ZERO(&set);
-    CPU_SET(cpus[slot % cpus.size()], &set);
-    pthread_setaffinity_np(pthread_self(), sizeof(set), &set);
-#else
-    (void)slot;
-#endif
-}
 
 void prefer_performance_cores(ThreadRole role = ThreadRole::Consumer)
 {

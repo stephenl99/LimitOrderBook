@@ -17,7 +17,11 @@
 #include <vector>
 
 #include "Book/OuterBook/OuterBook.h"
+#include "Baseline/MutexPipeline.h"
 #include "Core/MessagePipeline.h"
+#include "Core/MutexBuffer.h"
+#include "Core/SequencedBuffer.h"
+#include "Core/ThreadPinning.h"
 #include "Message/Databento/HandleMessage.h"
 
 enum class Threading {
@@ -27,10 +31,38 @@ enum class Threading {
     Sharded,
 };
 
-template <typename BookType = Book>
+template <template <Usable, std::size_t> class BufferType, IdleStrategy IdleType, bool Stamped>
+struct Handoff {
+    template <Usable Message, std::size_t Capacity, typename Handler>
+    using Pipeline = MessagePipeline<Message, Capacity, Handler, IdleType, BufferType>;
+    static constexpr bool kStamped = Stamped;
+};
+
+template <bool Stamped>
+struct CondvarHandoff {
+    template <Usable Message, std::size_t Capacity, typename Handler>
+    using Pipeline = MutexPipeline<Message, Handler>;
+    static constexpr bool kStamped = Stamped;
+};
+
+using DefaultHandoff = Handoff<CircularBuffer, BackoffWhenIdle, false>;
+
+struct StampedMbo {
+    mbo::MboMessage message;
+    std::int64_t pushed_ns = 0;
+};
+
+inline std::int64_t steady_ns()
+{
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
+template <typename BookType = Book, typename HandoffType = DefaultHandoff>
 class DatabentoSession {
 public:
     using SecurityBookT = typename BookType::SecurityBookT;
+    using Queued = std::conditional_t<HandoffType::kStamped, StampedMbo, mbo::MboMessage>;
 
     static constexpr std::size_t kQueueCapacity = 1 << 16;
 
@@ -41,12 +73,13 @@ public:
           reporting_(print_interval.count() > 0),
           parse_only_(threading == Threading::ParseOnly)
     {
+        pin_current_thread(0);
         if (threading == Threading::Pipeline) {
-            pipeline_.emplace(ApplyOnConsumer{this}, max_batch);
+            pipeline_.emplace(ApplyOnConsumer{this}, max_batch, std::size_t{1});
         }
         if (threading == Threading::Sharded) {
             for (std::size_t i = 0; i < shards; ++i) {
-                shards_.push_back(std::make_unique<Shard>(max_batch));
+                shards_.push_back(std::make_unique<Shard>(max_batch, 1 + i));
             }
         }
     }
@@ -113,11 +146,11 @@ public:
         if (!shards_.empty()) {
             Shard& shard = *shards_[message->instrument_id() % shards_.size()];
             ++shard.records;
-            shard.pipeline.push(*message);
+            shard.pipeline.push(queued(*message));
             return;
         }
         if (pipeline_) {
-            pipeline_->push(*message);
+            pipeline_->push(queued(*message));
         } else {
             apply(*message);
         }
@@ -169,17 +202,56 @@ public:
 
     std::uint64_t records() const { return producer_.records; }
 
+    std::vector<std::uint32_t> handoff_latencies_ns() const
+    {
+        std::vector<std::uint32_t> all = latencies_;
+        for (const auto& shard : shards_) {
+            all.insert(all.end(), shard->latencies.begin(), shard->latencies.end());
+        }
+        return all;
+    }
+
 private:
     static constexpr double kPriceScale = 1e9;
 
+    static std::vector<std::uint32_t> reserved_latencies()
+    {
+        std::vector<std::uint32_t> latencies;
+        if constexpr (HandoffType::kStamped) {
+            latencies.reserve(std::size_t{1} << 21);
+        }
+        return latencies;
+    }
+
+    static Queued queued(const mbo::MboMessage& message)
+    {
+        if constexpr (HandoffType::kStamped) {
+            return StampedMbo{message, steady_ns()};
+        } else {
+            return message;
+        }
+    }
+
+    static const mbo::MboMessage& unwrap(const Queued& item, std::vector<std::uint32_t>& latencies)
+    {
+        if constexpr (HandoffType::kStamped) {
+            latencies.push_back(static_cast<std::uint32_t>(std::min<std::int64_t>(steady_ns() - item.pushed_ns, UINT32_MAX)));
+            return item.message;
+        } else {
+            (void)latencies;
+            return item;
+        }
+    }
+
     struct ApplyOnConsumer {
         DatabentoSession* session;
-        void operator()(const mbo::MboMessage& message) const { session->apply(message); }
+        void operator()(const Queued& item) const { session->apply(unwrap(item, session->latencies_)); }
     };
 
     struct ApplyToBook {
         BookType* book;
-        void operator()(const mbo::MboMessage& message) const { mbo::handle_message(message, book); }
+        std::vector<std::uint32_t>* latencies;
+        void operator()(const Queued& item) const { mbo::handle_message(unwrap(item, *latencies), book); }
     };
 
     struct ProducerCounters {
@@ -189,11 +261,15 @@ private:
     };
 
     struct Shard {
-        explicit Shard(std::size_t max_batch) : pipeline(ApplyToBook{&book}, max_batch) {}
+        Shard(std::size_t max_batch, std::size_t cpu_slot)
+            : pipeline(ApplyToBook{&book, &latencies}, max_batch, cpu_slot)
+        {
+        }
 
         BookType book;
+        std::vector<std::uint32_t> latencies = reserved_latencies();
         alignas(kCacheLineSize) std::uint64_t records = 0;
-        MessagePipeline<mbo::MboMessage, kQueueCapacity, ApplyToBook, BackoffWhenIdle> pipeline;
+        typename HandoffType::template Pipeline<Queued, kQueueCapacity, ApplyToBook> pipeline;
     };
 
     void apply(const mbo::MboMessage& message)
@@ -326,6 +402,7 @@ private:
     std::uint64_t clears_ = 0;
     std::uint64_t crossed_prints_ = 0;
 
-    std::optional<MessagePipeline<mbo::MboMessage, kQueueCapacity, ApplyOnConsumer, BackoffWhenIdle>> pipeline_;
+    alignas(kCacheLineSize) std::vector<std::uint32_t> latencies_ = reserved_latencies();
+    std::optional<typename HandoffType::template Pipeline<Queued, kQueueCapacity, ApplyOnConsumer>> pipeline_;
     std::vector<std::unique_ptr<Shard>> shards_;
 };

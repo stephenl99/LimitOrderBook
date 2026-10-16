@@ -154,7 +154,7 @@ perf_stat_plain() {
 perf_to_rows() {
     local prefix=$1 file=$2
     grep -v '^#' "$file" | grep -v '^$' | awk -F, -v prefix="$prefix" '
-        { value = $1; event = $3; sub(/:u$/, "", event)
+        { value = $1; event = $3; gsub(/^cpu\/|\/$|:u$/, "", event)
           if (value ~ /^</) value = ""
           print prefix "," event "," value "," $5 }'
 }

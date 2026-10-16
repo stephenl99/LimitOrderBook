@@ -21,6 +21,8 @@ concept BenchSecurityBook = requires(S book, const S& view, std::uint64_t ref, S
     book.cancel_order(ref, quantity);
     book.delete_order(ref);
     book.replace_order(ref, ref, price, quantity);
+    book.modify_order(ref, price, quantity);
+    book.clear();
     { view.best_bid() } -> std::same_as<std::optional<Price>>;
     { view.best_ask() } -> std::same_as<std::optional<Price>>;
     { view.bid_depth(std::size_t{}) } -> std::same_as<std::vector<LevelSummary>>;

@@ -114,48 +114,10 @@ std::optional<Options> parse(int argc, char* argv[])
     return options;
 }
 
-constexpr std::uint64_t kFlowMagic = 0x31574f4c464b4f42ull;
-
-void save_flow(const OrderFlow& flow, const std::string& path)
-{
-    std::ofstream out(path, std::ios::binary);
-    const std::array<std::uint64_t, 5> header = {kFlowMagic, flow.warmup, flow.peak_resting, flow.ticks.size(),
-                                                 flow.ops.size()};
-    out.write(reinterpret_cast<const char*>(header.data()), sizeof(header));
-    out.write(reinterpret_cast<const char*>(flow.ticks.data()),
-              static_cast<std::streamsize>(flow.ticks.size() * sizeof(Price)));
-    out.write(reinterpret_cast<const char*>(flow.ops.data()),
-              static_cast<std::streamsize>(flow.ops.size() * sizeof(BookOp)));
-    if (!out) {
-        throw std::runtime_error("cannot write " + path);
-    }
-}
-
-OrderFlow read_flow(const std::string& path)
-{
-    std::ifstream in(path, std::ios::binary);
-    std::array<std::uint64_t, 5> header{};
-    in.read(reinterpret_cast<char*>(header.data()), sizeof(header));
-    if (!in || header[0] != kFlowMagic) {
-        throw std::runtime_error(path + " is not a book_bench flow file");
-    }
-    OrderFlow flow;
-    flow.warmup = header[1];
-    flow.peak_resting = header[2];
-    flow.ticks.resize(header[3]);
-    flow.ops.resize(header[4]);
-    in.read(reinterpret_cast<char*>(flow.ticks.data()), static_cast<std::streamsize>(flow.ticks.size() * sizeof(Price)));
-    in.read(reinterpret_cast<char*>(flow.ops.data()), static_cast<std::streamsize>(flow.ops.size() * sizeof(BookOp)));
-    if (!in) {
-        throw std::runtime_error(path + " is truncated");
-    }
-    return flow;
-}
-
 OrderFlow load_flow(const Options& options)
 {
     if (!options.flow_path.empty()) {
-        return read_flow(options.flow_path);
+        return read_order_flow(options.flow_path);
     }
     if (!options.itch_path.empty()) {
         auto flow = load_itch_order_flow(options.itch_path);
@@ -185,6 +147,12 @@ inline void apply(S& book, const BookOp& op)
         break;
     case BookOpType::Replace:
         book.replace_order(op.ref, op.new_ref, op.price, op.quantity);
+        break;
+    case BookOpType::Modify:
+        book.modify_order(op.ref, op.price, op.quantity);
+        break;
+    case BookOpType::Clear:
+        book.clear();
         break;
     }
 }
@@ -594,7 +562,7 @@ int main(int argc, char* argv[])
                 std::cerr << "book_bench: generate needs --out\n";
                 return 1;
             }
-            save_flow(flow, options->out_path);
+            save_order_flow(flow, options->out_path);
             return describe(flow);
         }
         if (options->mode == "describe") {

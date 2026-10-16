@@ -14,10 +14,16 @@
 #include "Message/Itch/OrderReplaceMessage.h"
 #include "Message/Itch/StockDirectoryMessage.h"
 
+#include "Baseline/MutexPipeline.h"
+#include "Core/MessagePipeline.h"
+#include "Core/MutexBuffer.h"
+#include "Core/SequencedBuffer.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -783,6 +789,12 @@ void apply_flow_op(S& book, const BookOp& op)
     case BookOpType::Replace:
         book.replace_order(op.ref, op.new_ref, op.price, op.quantity);
         break;
+    case BookOpType::Modify:
+        book.modify_order(op.ref, op.price, op.quantity);
+        break;
+    case BookOpType::Clear:
+        book.clear();
+        break;
     }
 }
 
@@ -849,5 +861,63 @@ TEST(BookVariants, PooledSlotIndexMatchesUnorderedMap)
         const std::uint64_t probe = key(rng) * 1024;
         const auto it = expected.find(probe);
         ASSERT_EQ(index.find(probe), it == expected.end() ? pooled::kNoSlot : it->second);
+    }
+}
+
+namespace {
+
+template <template <Usable, std::size_t> class Buffer, typename Idle>
+void expect_pipeline_delivers_in_order(std::size_t max_batch)
+{
+    constexpr std::int64_t kItems = 200'000;
+    std::int64_t expected = 0;
+    bool in_order = true;
+    {
+        MessagePipeline<std::int64_t, 1024, std::function<void(std::int64_t&)>, Idle, Buffer> pipeline(
+            [&](std::int64_t& value) {
+                in_order = in_order && value == expected;
+                ++expected;
+            },
+            max_batch);
+        for (std::int64_t i = 0; i < kItems; ++i) {
+            pipeline.push(i);
+        }
+    }
+    EXPECT_TRUE(in_order);
+    EXPECT_EQ(expected, kItems);
+}
+
+}  // namespace
+
+TEST(MessagePipeline, EveryBufferDeliversEveryItemInOrder)
+{
+    for (const std::size_t batch : {std::size_t{1}, std::size_t{64}}) {
+        expect_pipeline_delivers_in_order<CircularBuffer, BackoffWhenIdle>(batch);
+        expect_pipeline_delivers_in_order<SequencedBuffer, BackoffWhenIdle>(batch);
+        expect_pipeline_delivers_in_order<MutexBuffer, BackoffWhenIdle>(batch);
+        expect_pipeline_delivers_in_order<CircularBuffer, SpinWhenIdle>(batch);
+        expect_pipeline_delivers_in_order<CircularBuffer, YieldWhenIdle>(batch);
+    }
+}
+
+TEST(MutexPipeline, DeliversEveryItemInOrder)
+{
+    for (const std::size_t batch : {std::size_t{1}, std::size_t{64}}) {
+        constexpr std::int64_t kItems = 200'000;
+        std::int64_t expected = 0;
+        bool in_order = true;
+        {
+            MutexPipeline<std::int64_t, std::function<void(std::int64_t&)>> pipeline(
+                [&](std::int64_t& value) {
+                    in_order = in_order && value == expected;
+                    ++expected;
+                },
+                batch);
+            for (std::int64_t i = 0; i < kItems; ++i) {
+                pipeline.push(i);
+            }
+        }
+        EXPECT_TRUE(in_order) << batch;
+        EXPECT_EQ(expected, kItems) << batch;
     }
 }

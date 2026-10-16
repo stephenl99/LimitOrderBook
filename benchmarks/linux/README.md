@@ -9,12 +9,117 @@ timer and (once enabled) `perf` hardware counters.
   moved up to 2x between sessions, so trust the queue *rankings* more than the queue *numbers*.
 - `perf_event_paranoid` was 4 on this run, so hardware counters were skipped. Everything else here was measured.
 
-Contents: [Book results](#book-results) · [Queue results](#queue-results) · [How each queue works](#how-each-queue-works)
+Contents: [Databento path](#databento-path) · [Synthetic book results](#synthetic-book-results-itch-shaped-flow) · [Queue results](#queue-results) · [How each queue works](#how-each-queue-works)
+· [Profiling with perf](#profiling-with-perf) · [Hyperthreads: same core or separate cores?](#hyperthreads-same-core-or-separate-cores)
 · [How the measurements work](#how-the-measurements-work) · [Reproducing](#reproducing) · [Raw data](#raw-data)
 
 ---
 
-## Book results
+## Databento path
+
+Everything in this section is the real Databento pipeline (`databento_replay` → `DatabentoSession` →
+`mbo::handle_message`) on two CME MBO files from one hour: `esz6` (ESZ6, 163,149 records) and `cme_mix` (ESZ6, NQZ6,
+CLX6, GCZ6, ZNZ6, 6EZ6, 1,054,337 records). Every mode, queue type and book ends in the identical book state.
+Images are in [`databento/images/`](databento/images/), numbered in talk order, CSVs in [`databento/`](databento/).
+
+```
+tools/linux/build_databento.sh       # databento-cpp into vendor/install (needs libssl-dev libzstd-dev)
+tools/linux/databento_report.sh      # every step below + images, ~45 min; --only handoff,buffers,placement,latency,books,perf
+```
+
+### Handoff designs
+
+| mode | what it is |
+|---|---|
+| single thread | `DatabentoSession::apply` on the reading thread, no queue |
+| mutex + condvar | `Baseline/MutexPipeline.h`: `std::queue`, lock + `notify_one` per message, consumer sleeps on the condvar (same design as `ItchMutexDecoder`) |
+| locked ring | fixed ring guarded by a mutex (`Core/MutexBuffer.h`), consumer polls with back-off |
+| ring | lock-free SPSC `CircularBuffer` with cached counters; consumer waits by yield, spin or back-off |
+| sequence ring | `SequencedBuffer`, a sequence number per slot, back-off |
+| N shards | one ring + book thread per shard, routed by `instrument_id % N` |
+
+![throughput by handoff design](databento/images/01_pipeline_modes_cme_mix.png)
+
+On the decompressed file (what a live feed looks like) with the fast book: single thread 8.5 M msgs/s, ring 14.2,
+mutex + condvar 2.8–3.6. The producer alone (read + decode, no book) does 19.4.
+
+- **The lock-free ring is 1.7x a single thread, but only when the book is fast.** With `tree` the consumer is the
+  bottleneck and the ring gains little (6.2 vs 4.6); sharding helps it instead (3 shards: 14.1).
+- **mutex + condvar is slower than one thread** (2.7–4.8 M msgs/s): a lock, a notify and often a futex wake per message.
+- **On the zstd file decompression caps the producer at ~9 M msgs/s** and every threaded design sits under it.
+
+![queue types](databento/images/02_queue_types_cme_mix.png)
+
+The four lock-free variants are within a few percent of each other on the real pipeline (13.9–14.7 M msgs/s): once
+there is real decode and book work, the queue internals stop mattering. The gap is lock-free vs locked (2.4–5.6).
+
+![thread placement](databento/images/03_thread_placement_cme_mix.png)
+
+Separate physical cores 14.9, hyperthreads of one core 9.3, one logical CPU 7.9. Databento messages travel by value,
+so nothing is allocated on one thread and freed on the other; separate cores win clearly. (The ITCH path, which
+passes heap-allocated messages, showed the opposite; see "Hyperthreads" below.)
+
+### Handoff latency
+
+Replay paced at 60x market time on `esz6` (the bursts keep their real spacing), batch 64, separate cores. Latency =
+push on the producer to pickup on the consumer.
+
+| queue | median, fast book | median, tree | p90, fast book | consumer CPU |
+|---|---|---|---|---|
+| ring, spin | **226 ns** | 407 ns | 1.5 µs | 100% |
+| ring, yield | 329 ns | 588 ns | 1.5 µs | 100% |
+| sequence ring (back-off) | 1.0 µs | 3.8 µs | 66 µs | 42% |
+| ring, back-off | 1.7 µs | 4.0 µs | 68 µs | 41% |
+| locked ring (back-off) | 2.0 µs | 4.8 µs | 66 µs | 42% |
+| mutex + condvar | **70 µs** | 73 µs | 88 µs | **3%** |
+
+![handoff latency](databento/images/04_handoff_latency.png)
+![latency tail](databento/images/05_handoff_latency_tail.png)
+![consumer cpu](databento/images/06_consumer_cpu.png)
+
+- **The idle strategy decides latency, not the buffer.** Consumers that never sleep (spin, yield) hand off in
+  ~0.2–0.6 µs and burn a whole core. Back-off sleeps between bursts: 1–4 µs median, ~66 µs p90 (waking a sleeping
+  core), 41% of a core. The condvar sleeps in the kernel: ~70 µs median, 3% of a core.
+- **The tail (p99 ≈ 1 ms) is the same for every queue.** It is messages waiting behind the market's biggest bursts:
+  the producer decodes faster than the consumer applies. Part of it is the 60x replay compressing the quiet gaps.
+  This CPU's deepest idle state takes 890 µs to leave, which shows up in the back-off and condvar tails.
+- 240x replay overloaded the consumer (p99 5–14 ms for every queue) and is not used.
+
+### Inner books
+
+![inner books](databento/images/07_inner_books.png)
+![book design matrix](databento/images/08_book_design_matrix.png)
+
+ns per record, book only (`databento_replay ... variants all`, 15 passes): `pooled-ladder` 51, `ladder` 52,
+`pooled-hybrid` 55, `agg-flat` 60, `agg-linear` 72, `lazy-handle-ladder` 73, `agg-map` 75, `agg` 84, `hybrid` 100,
+`flat` 118, `tree` 139 (`cme_mix`).
+
+- **The exchange book with a pooled FIFO queue keeps every order in time priority and is as fast as the
+  market-maker books that keep only totals** (51 vs 52 on `cme_mix`, 35 vs 37 on `esz6`).
+- **`std::list` queues cost 2–2.7x.** The level container matters less: with list queues, map vs vector is 139 vs 100.
+- The lazy queue is mid-pack and has the worst modify tail (p99 ≈ 1 µs, image 09).
+
+![message latency](databento/images/09_book_message_latency.png)
+
+### Why, from perf
+
+![work per record](databento/images/10_work_per_record.png)
+![top-down](databento/images/11_topdown.png)
+![cache misses](databento/images/12_cache_misses.png)
+![slow loads](databento/images/13_slow_loads_by_structure.png)
+![hot functions](databento/images/14_hot_functions.png)
+
+- The list books execute several times the instructions per record of the flat books.
+- In the fast books the largest loss is bad speculation (25–32% of pipeline slots), not memory.
+- `ladder` / `agg-flat`: 48–81% of slow-load latency is the order index (whole orders in each slot, a big table).
+  `pooled-ladder`'s index is 16-byte slots, only 21–27%; its slow loads are the queue unlink instead.
+
+Caveat for all numbers: governor `powersave`, turbo on, the CPU ran at about 2.3 GHz. Absolute ns are higher than on
+the M2; the rankings held across repeated runs.
+
+---
+
+## Synthetic book results (ITCH-shaped flow)
 
 ### What is compared
 
@@ -283,6 +388,114 @@ x86 note: `PauseKind::Isb` compiles to the same `pause` as `PauseKind::Yield`, s
 `make backoff_sweep` duplicate the `yield` rows here. And `pause` costs ~140 cycles here versus ~9 ns for `isb` on the
 M2, so `BalancedBackoff`'s 256 spins last several times longer on this CPU.
 
+## Profiling with perf
+
+`tools/linux/profile.sh` (about 25 min) writes everything below to [`perf/`](perf/), with tables in
+[`perf/summary.md`](perf/summary.md). No code was added for it: every step runs the release binaries under `perf`. The
+only hook is `book_bench`'s existing counter gate (`LOB_PERF_CTL_FD`), so book numbers cover the timed loop only.
+`tools/plot_linux_perf.py benchmarks/linux/perf` redraws the charts from the CSVs on any machine.
+
+| step | perf command | what it gives |
+|---|---|---|
+| `book` | `perf stat -D -1 --control fd:...` in 5 groups of at most 4 hardware events | cycles, instructions, branch misses, top-down slots, L1/L2/L3 misses, miss stalls, per op |
+| `queue` | `perf stat -C <producer>,<consumer> -A` | the same counters split by CPU, so producer and consumer separate, since each is pinned |
+| `mem` | `perf record -e cpu/mem-loads,ldlat=30/P -d -W`, then `perf script -F data_src,weight,srcline` | every sampled load >= 30 cycles, the level that served it, and the class it belongs to (`tools/linux/perf_mem_sources.py`) |
+| `cpu` | `perf record --call-graph lbr` | self time per function; full stacks in [`perf/profiles/`](perf/profiles/) for https://profiler.firefox.com |
+| `clock` | `perf stat -I 250 -e cycles,ref-cycles` | effective clock every 250 ms |
+
+Groups are capped at 4 hardware events because the NMI watchdog holds a counter. No count in the CSVs was time-sliced
+(every row is counted 100% of the time). Needs `sudo sysctl kernel.perf_event_paranoid=0`.
+
+### Clock
+![clock](perf/clock.png)
+
+The governor held this CPU at ~2.3 GHz throughout (base 1.8, turbo 4.9), with no throttling. This, plus core design, is
+the gap to the Mac: `ladder` takes 145 cycles/op here, which is 63 ns at 2.3 GHz; the M2's 18.8 ns at ~3.5 GHz is about 66
+cycles. So the M2 does the same op in under half the cycles and also runs at 1.5x the clock. Compare books across
+machines in cycles, not ns.
+
+### Work per operation
+![work](perf/book_work.png)
+
+- `tree` / `flat` / `hybrid` execute 650–800 instructions per op; `ladder` and `pooled-ladder` ~160. The fast books do
+  a quarter of the work, not the same work faster.
+- `pooled-ladder` is the cheapest in `equity` (132 cycles) and `deep` (127), with the same instruction count as
+  `ladder` and higher IPC.
+- `ladder-identity` in `deep`: 1,777 instructions per op at IPC 2.28. It runs fast but does 11x the work: it walks the
+  long probe runs that sequential ids leave in an identity-hashed table.
+
+### Where the cycles go (top-down)
+![topdown](perf/book_topdown.png)
+
+- In `equity` and `deep` the fast books are not memory-bound (backend 9–23%). Their largest loss is **bad
+  speculation, 19–37% of slots**, from 1.5–3.7 mispredicted branches per op. Part of that is the benchmark's `switch`
+  on a random op type, which a feed handler also has.
+- In `multi` everything becomes memory-bound: backend 31–53%. With 64 books the working set leaves the 1 MB L2.
+
+### Misses and stalls
+![misses](perf/book_misses.png)
+
+In `multi` the list books miss ~15 times per op in L1 and ~10 in L2; `ladder` ~3 and ~1.5. The lazy books miss about
+twice as often as `ladder` in `equity`, which is the cost of the second write per add.
+
+### Which structure the slow loads belong to
+![mem sources](perf/book_mem_sources.png)
+
+- **`ladder` / `agg-flat`: 60–74% of slow-load latency is the order index.** Their index stores the whole order in each
+  slot (~32 bytes), so the table is large and probing it misses L3.
+- **`pooled-ladder`: only 21–27% is the index** (16-byte slots: id + order slot). Its slow loads move to the order
+  nodes (65–67%, unlinking `prev` / `next` in `remove_slot`). That is why it misses L3 less than `ladder` in `deep`.
+- `tree` spreads its latency across the hash map, the `std::map` levels and list nodes.
+
+### Hot functions
+![hotspots](perf/book_hotspots.png)
+
+`perf annotate` on `lazy-handle-ladder`'s `add_resting` (51% of its time) puts 58% of that function on one load:
+`slots_[slot].key` in `BasicFlatOrderIndex::find` (`OrderIndex.h:82`), the duplicate-id check before inserting. Another
+6.6% is an `idivq`: the `(price - base_) / tick_` that appears 8 times across `PriceLadder`, `PooledBook` and
+`LazyQueueBook`. A 64-bit divide is ~40–90 cycles on this core; a precomputed reciprocal, or a shift when the tick is a
+power of two, would remove it.
+
+### Queues, producer and consumer separately
+![queue coherence](perf/queue_coherence.png)
+
+- mutex: ~1 HITM and ~2.5 locked atomics per item (lock, unlock, notify), plus memory-ordering clears.
+- MPMC: exactly 1 locked atomic per item on each side (the compare-and-swap), hence a constant ~43 cycles.
+- cached-counter ring: 0 HITM on the producer, ~0.3 on the consumer (it keeps re-reading `tail_` while it keeps up).
+  The sequence ring cuts that about 10x.
+- On SMT siblings HITM drops to 0, and the cost shows up as memory-ordering clears instead (mostly the uncached ring).
+- An earlier guess, that the sequence ring halves on SMT because of machine clears, is wrong: it takes ~0.002 clears
+  per item, and costs 12.2 cycles per item on SMT vs 10.9 across cores.
+
+## Hyperthreads: same core or separate cores?
+
+Sharing a core means sharing L1/L2, so data crosses for free. It also means sharing the core's issue width, reorder
+buffer, branch predictor and cache capacity. The ITCH ring decoder (`bench 10 testdata/queue_1000000.bin`, 1.5M
+messages, median of 5, counted per CPU) shows which effect wins:
+
+| placement | M msgs/s | cycles/msg | instructions/msg | HITM/msg | context switches |
+|---|---|---|---|---|---|
+| separate cores (`taskset -c 2,3`) | 1.20 | 4,182 | 4,009 | 7.78 | 134,338 |
+| SMT siblings (`taskset -c 2,6`) | 1.64 | 3,194 | 3,298 | 0.00 | 87,050 |
+| one logical CPU (`taskset -c 2`) | **2.62** | **1,209** | **2,124** | 0.00 | 2,368 |
+
+- Across cores each message costs ~8 cache-line transfers. The `unique_ptr<Message>` is allocated on the parser
+  thread and freed on the handler thread, so the message, the ring slot and malloc's bookkeeping all bounce.
+  Instructions nearly double from the waiting.
+- SMT siblings remove the transfers, so they beat separate cores by 37%.
+- One CPU wins: the consumer yields when the ring is empty, the producer fills a big batch, they swap. It is a
+  single thread with batching and no coherence traffic. Each message is ~1,200 cycles of real work, too little to
+  split across threads.
+
+SMT helps when the handoff is the bottleneck: little work per item, a lot of data crossing (this decoder; the queue
+tests, where SMT halved p50 and collapsed p99). It hurts when both threads do real work, because they compete for one
+core: a core running two busy hyperthreads typically gives 1.0–1.3x one thread's throughput, against ~2x for two
+cores. The book in `multi` is already memory-bound, and a parser or zstd on the same core halves its cache.
+
+So: first stop the allocation crossing threads (messages by value), which should bring HITM/msg down toward the
+ring's ~0.3. Then run producer and consumer on separate physical cores with the siblings idle (`isolcpus`, or SMT off).
+Decide placement with two numbers: HITM per message and IPC. Apple's cores have no SMT, so this only applies to x86.
+
 ---
 
 ## How the measurements work
@@ -401,6 +614,8 @@ make book_report                    # ~5 min
 make linux_queue_report             # ~10 min
 make book_report BOOK_ARGS="--runs 3 --scenarios equity,deep --itch testdata/session_mix.bin"
 make linux_queue_report QUEUE_ARGS="--c2c --fanout"
+tools/linux/profile.sh                                         # perf counters, perf mem, call stacks, clock
+tools/linux/profile.sh --only book,queue --scenarios deep
 tools/linux/book_bench.sh --help
 ```
 

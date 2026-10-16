@@ -1,0 +1,13 @@
+file,book,handoff,batch,consumer_busy_pct
+esz6,tree,mutex-cv,64,4.2
+esz6,tree,locked-ring,64,42.2
+esz6,tree,ring-yield,64,100.0
+esz6,tree,ring-spin,64,100.0
+esz6,tree,ring,64,41.6
+esz6,tree,sequenced,64,41.6
+esz6,ladder-cached64,mutex-cv,64,2.6
+esz6,ladder-cached64,locked-ring,64,41.6
+esz6,ladder-cached64,ring-yield,64,100.0
+esz6,ladder-cached64,ring-spin,64,100.0
+esz6,ladder-cached64,ring,64,40.8
+esz6,ladder-cached64,sequenced,64,41.7
