@@ -18,7 +18,7 @@ Contents: [Book results](#book-results) · [Queue results](#queue-results) · [H
 
 ### What is compared
 
-Every variant is a `BasicBook<SecurityBookT, CacheSlots>` driven through `book_for(instrument)`, the same path
+Every variant is a `OuterBook<SecurityBookT, CacheSlots>` driven through `book_for(instrument)`, the same path
 `databento_replay` uses. All of them replay the identical sequence of operations. The registry is in
 `Core/Source/BookVariants/BookVariants.h`.
 
@@ -32,12 +32,12 @@ Every variant is a `BasicBook<SecurityBookT, CacheSlots>` driven through `book_f
 | `ladder` | `PriceLadder`, one slot per tick | open addressing | aggregate |
 | `ladder-identity` | ladder | open addressing, identity hash | aggregate |
 | `pooled-hybrid` | hybrid vector of level slots | open addressing | intrusive FIFO per level, all orders in one vector |
-| `pooled-ladder` | ladder of level slots, tick inferred | open addressing | intrusive FIFO |
+| `pooled-ladder` | ladder of level slots, tick passed in | open addressing | intrusive FIFO |
 
 All of the above use a 64-slot instrument cache. `tree-nocache`, `ladder-nocache` and `ladder-cache1` vary only the
 cache.
 
-The two `pooled-*` books (`Core/Source/BookVariants/PooledBook.h`) test one question: what does keeping the real
+The two `pooled-*` books (`Core/Source/Book/InnerBook/Exchange/PooledBook.h`) test one question: what does keeping the real
 per-level order queue cost, if it costs no allocations? Each order is a node in one pooled vector, linked into its
 level by 32-bit indices, so a delete is an O(1) unlink.
 
@@ -268,7 +268,7 @@ compare-and-swap.
 - **Bad:** even with one consumer, every op is a locked atomic read-modify-write, which acts as a full fence: 56 M/s.
   With two consumers they fight over `dequeue_pos`, the CAS keeps failing and the line ping-pongs (67 → 11 M/s). It's
   also wrong for a book: two consumers could apply messages for one instrument out of order. That's why
-  `ShardedDecoder` routes by instrument through separate SPSC rings instead.
+  `ItchShardedDecoder` routes by instrument through separate SPSC rings instead.
 
 ### Idle strategies (`Core/Source/Core/IdleStrategy.h`)
 What a side does when the ring is empty or full. This matters as much as the queue:
@@ -364,7 +364,7 @@ switches per million, and draws `book_perf.png` / `queue_perf.png`.
 ### `perf c2c` (`queue_bench.sh --c2c`)
 `perf c2c record` samples memory loads with their addresses. `perf c2c report` then lists the specific cache lines
 with the most cross-core traffic and the code that touches them. This is how to find false sharing like the
-`MboSession::records_` problem in `benchmarks/README.md` without reasoning about byte offsets by hand. It usually
+`DatabentoSession::records_` problem in `benchmarks/README.md` without reasoning about byte offsets by hand. It usually
 needs root.
 
 ### Per-op latency (`CycleClock` in `BookBench.cpp`)

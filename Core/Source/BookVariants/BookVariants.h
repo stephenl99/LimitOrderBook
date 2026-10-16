@@ -8,10 +8,11 @@
 #include <type_traits>
 #include <vector>
 
-#include "BookVariants/PooledBook.h"
-#include "Book/AggregateSecurityBook.h"
-#include "Book/Book.h"
-#include "Book/SecurityBook.h"
+#include "Book/InnerBook/Exchange/LazyQueueBook.h"
+#include "Book/InnerBook/Exchange/PooledBook.h"
+#include "Book/InnerBook/MarketMaker/AggregateSecurityBook.h"
+#include "Book/OuterBook/OuterBook.h"
+#include "Book/InnerBook/Exchange/SecurityBook.h"
 
 template <typename S>
 concept BenchSecurityBook = requires(S book, const S& view, std::uint64_t ref, Side side, Price price, std::uint32_t quantity) {
@@ -41,18 +42,22 @@ template <typename F>
 void for_each_book_variant(F&& visit)
 {
     constexpr std::size_t kCache = kDefaultCacheSlots;
-    visit(std::type_identity<BasicBook<SecurityBook, kCache>>{}, BookVariantInfo{"tree", "map", "node", "list", kCache});
-    visit(std::type_identity<BasicBook<FlatSecurityBook, kCache>>{}, BookVariantInfo{"flat", "vector-linear", "node", "list", kCache});
-    visit(std::type_identity<BasicBook<HybridFlatSecurityBook, kCache>>{}, BookVariantInfo{"hybrid", "vector-hybrid", "node", "list", kCache});
-    visit(std::type_identity<BasicBook<SortedAggregateSecurityBook, kCache>>{}, BookVariantInfo{"agg", "vector-hybrid", "node", "aggregate", kCache});
-    visit(std::type_identity<BasicBook<SortedAggregateFlatIndexSecurityBook, kCache>>{}, BookVariantInfo{"agg-flat", "vector-hybrid", "flat", "aggregate", kCache});
-    visit(std::type_identity<BasicBook<LadderSecurityBook, kCache>>{}, BookVariantInfo{"ladder", "ladder", "flat", "aggregate", kCache});
-    visit(std::type_identity<BasicBook<IdentityLadderSecurityBook, kCache>>{}, BookVariantInfo{"ladder-identity", "ladder", "flat-identity", "aggregate", kCache});
-    visit(std::type_identity<BasicBook<PooledHybridSecurityBook, kCache>>{}, BookVariantInfo{"pooled-hybrid", "vector-hybrid", "flat", "pooled-fifo", kCache});
-    visit(std::type_identity<BasicBook<PooledLadderSecurityBook, kCache>>{}, BookVariantInfo{"pooled-ladder", "ladder", "flat", "pooled-fifo", kCache});
-    visit(std::type_identity<BasicBook<SecurityBook, 0>>{}, BookVariantInfo{"tree-nocache", "map", "node", "list", 0});
-    visit(std::type_identity<BasicBook<LadderSecurityBook, 0>>{}, BookVariantInfo{"ladder-nocache", "ladder", "flat", "aggregate", 0});
-    visit(std::type_identity<BasicBook<LadderSecurityBook, 1>>{}, BookVariantInfo{"ladder-cache1", "ladder", "flat", "aggregate", 1});
+    visit(std::type_identity<OuterBook<SecurityBook, kCache>>{}, BookVariantInfo{"tree", "map", "node", "list", kCache});
+    visit(std::type_identity<OuterBook<FlatSecurityBook, kCache>>{}, BookVariantInfo{"flat", "vector-linear", "node", "list", kCache});
+    visit(std::type_identity<OuterBook<HybridFlatSecurityBook, kCache>>{}, BookVariantInfo{"hybrid", "vector-hybrid", "node", "list", kCache});
+    visit(std::type_identity<OuterBook<SortedAggregateSecurityBook, kCache>>{}, BookVariantInfo{"agg", "vector-hybrid", "node", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<SortedAggregateFlatIndexSecurityBook, kCache>>{}, BookVariantInfo{"agg-flat", "vector-hybrid", "flat", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<LinearAggregateSecurityBook, kCache>>{}, BookVariantInfo{"agg-linear", "vector-linear", "flat", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<MapAggregateSecurityBook, kCache>>{}, BookVariantInfo{"agg-map", "map", "flat", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<LadderSecurityBook, kCache>>{}, BookVariantInfo{"ladder", "ladder", "flat", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<IdentityLadderSecurityBook, kCache>>{}, BookVariantInfo{"ladder-identity", "ladder", "flat-identity", "aggregate", kCache});
+    visit(std::type_identity<OuterBook<PooledHybridSecurityBook, kCache>>{}, BookVariantInfo{"pooled-hybrid", "vector-hybrid", "flat", "pooled-fifo", kCache});
+    visit(std::type_identity<OuterBook<PooledLadderSecurityBook, kCache>>{}, BookVariantInfo{"pooled-ladder", "ladder", "flat", "pooled-fifo", kCache});
+    visit(std::type_identity<OuterBook<LazyHashLadderSecurityBook, kCache>>{}, BookVariantInfo{"lazy-hash-ladder", "ladder", "flat", "lazy-fifo", kCache});
+    visit(std::type_identity<OuterBook<LazySlotLadderSecurityBook, kCache>>{}, BookVariantInfo{"lazy-slot-ladder", "ladder", "flat", "lazy-fifo", kCache});
+    visit(std::type_identity<OuterBook<LazyHandleLadderSecurityBook, kCache>>{}, BookVariantInfo{"lazy-handle-ladder", "ladder", "flat", "lazy-fifo", kCache});
+    visit(std::type_identity<OuterBook<SecurityBook, 0>>{}, BookVariantInfo{"tree-nocache", "map", "node", "list", 0});
+    visit(std::type_identity<OuterBook<LadderSecurityBook, 0>>{}, BookVariantInfo{"ladder-nocache", "ladder", "flat", "aggregate", 0});
 }
 
 inline std::vector<std::string> book_variant_names()

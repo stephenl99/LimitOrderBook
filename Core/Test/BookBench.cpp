@@ -270,6 +270,9 @@ template <typename B>
 ThroughputResult run_throughput(const OrderFlow& flow)
 {
     auto books = std::make_unique<B>();
+    for (std::size_t instrument = 0; instrument < flow.ticks.size(); ++instrument) {
+        books->set_tick(static_cast<InstrumentId>(instrument), flow.ticks[instrument]);
+    }
     for (std::size_t i = 0; i < flow.warmup; ++i) {
         apply(books->book_for(flow.ops[i].instrument), flow.ops[i]);
     }
@@ -333,6 +336,9 @@ std::uint64_t run_latency(const OrderFlow& flow, LatencySamples& samples)
         per_type.reserve(flow.ops.size() / 2);
     }
     auto books = std::make_unique<B>();
+    for (std::size_t instrument = 0; instrument < flow.ticks.size(); ++instrument) {
+        books->set_tick(static_cast<InstrumentId>(instrument), flow.ticks[instrument]);
+    }
     for (std::size_t i = 0; i < flow.warmup; ++i) {
         apply(books->book_for(flow.ops[i].instrument), flow.ops[i]);
     }
@@ -502,6 +508,7 @@ int describe(const OrderFlow& flow)
         std::cout << "  " << book_op_name(static_cast<BookOpType>(type)) << '=' << counts[type] << '\n';
     }
     LadderSecurityBook probe(0);
+    probe.set_tick(flow.ticks[0]);
     std::map<std::size_t, std::size_t> distance_histogram;
     std::size_t timed = 0;
     std::size_t bbo_changes = 0;

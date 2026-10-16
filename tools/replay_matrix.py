@@ -6,7 +6,7 @@ import statistics
 import subprocess
 from pathlib import Path
 
-DEFAULT_BOOKS = ["tree", "hybrid", "agg-flat", "ladder-cached", "ladder-cached64"]
+DEFAULT_BOOKS = ["tree", "hybrid", "agg-flat", "ladder", "ladder-cached64"]
 DEFAULT_MODES = ["single/1", "ring/1", "ring/64", "sharded2/64"]
 
 

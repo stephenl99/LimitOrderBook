@@ -18,9 +18,9 @@ GRID = "#e4e3de"
 SURFACE = "#fcfcfb"
 BASELINE = "#8a8984"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
-ORDER_COLORS = {"list": BASELINE, "aggregate": SERIES[0], "pooled-fifo": SERIES[1]}
+ORDER_COLORS = {"list": BASELINE, "aggregate": SERIES[0], "pooled-fifo": SERIES[1], "lazy-fifo": SERIES[2]}
 ORDER_NAMES = {"list": "std::list per level (full queue)", "aggregate": "aggregate levels, orders in the index",
-               "pooled-fifo": "pooled intrusive FIFO (full queue)"}
+               "pooled-fifo": "pooled intrusive FIFO (full queue)", "lazy-fifo": "aggregate levels + lazy FIFO (full queue)"}
 BASELINE_IMPL = "tree"
 ROUTING_IMPLS = {"tree-nocache", "ladder-nocache", "ladder-cache1"}
 PLACEMENT_COLORS = {"unpinned": BASELINE, "cross_core": SERIES[0], "smt": SERIES[1]}
@@ -305,7 +305,7 @@ def plot_book_routing(rows, out):
                  {s: s for s in scenarios})
     ax.set_ylabel("ns per operation")
     ax.legend(loc="upper left", bbox_to_anchor=(0, -0.28), ncol=3)
-    ax.set_title("Book: instrument lookup in BasicBook::book_for (lower is faster)", loc="left")
+    ax.set_title("Book: instrument lookup in OuterBook::book_for (lower is faster)", loc="left")
     save(fig, out, "book_routing.png")
 
 

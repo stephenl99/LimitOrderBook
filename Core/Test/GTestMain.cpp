@@ -1,10 +1,11 @@
 #include "BookVariants/BookVariants.h"
 #include "BookVariants/OrderFlow.h"
-#include "Book/Book.h"
-#include "Baseline/SingleThreadDecoder.h"
-#include "Core/Decoder.h"
-#include "Core/ShardedDecoder.h"
-#include "Book/StockDirectory.h"
+#include "Book/OuterBook/ItchBook.h"
+#include "Book/OuterBook/OuterBook.h"
+#include "Baseline/ItchSingleThreadDecoder.h"
+#include "Core/ItchDecoder.h"
+#include "Core/ItchShardedDecoder.h"
+#include "Book/OuterBook/ItchSecurityDirectory.h"
 #include "Message/Itch/AddOrderMessage.h"
 #include "Message/Itch/DecodeMessage.h"
 #include "Message/Itch/OrderCancelMessage.h"
@@ -281,9 +282,9 @@ TEST(Book, ReplaceMovesPriceAndReference)
     EXPECT_TRUE(book.ask_levels.contains(1'500'800u));
 }
 
-TEST(StockDirectory, AddAndLookup)
+TEST(ItchSecurityDirectory, AddAndLookup)
 {
-    StockDirectory directory;
+    ItchSecurityDirectory directory;
     directory.add(42, "MSFT    ");
     const auto symbol = directory.lookup(42);
     ASSERT_TRUE(symbol.has_value());
@@ -292,11 +293,11 @@ TEST(StockDirectory, AddAndLookup)
     EXPECT_TRUE(directory.lookup(99).has_value() == false);
 }
 
-TEST(Decoder, SessionMixRebuildsBook)
+TEST(ItchDecoder, SessionMixRebuildsBook)
 {
-    auto result = Decoder::decode_file(fixture("session_mix.bin"));
+    auto result = ItchDecoder::decode_file(fixture("session_mix.bin"));
     ASSERT_TRUE(result.has_value()) << result.error();
-    const std::unique_ptr<Book>& books = *result;
+    const std::unique_ptr<ItchBook>& books = *result;
     const auto book = find_security_book(*books, 1);
     ASSERT_TRUE(book.has_value());
     EXPECT_EQ((*book)->stock_locate(), 1u);
@@ -321,11 +322,11 @@ TEST(Decoder, SessionMixRebuildsBook)
     EXPECT_EQ((*book)->order_mapping.size(), 4u);
 }
 
-TEST(Decoder, TinyAddFixture)
+TEST(ItchDecoder, TinyAddFixture)
 {
-    auto result = Decoder::decode_file(fixture("add_order_a.bin"));
+    auto result = ItchDecoder::decode_file(fixture("add_order_a.bin"));
     ASSERT_TRUE(result.has_value()) << result.error();
-    const std::unique_ptr<Book>& books = *result;
+    const std::unique_ptr<ItchBook>& books = *result;
     const auto book = find_security_book(*books, 1);
     ASSERT_TRUE(book.has_value());
     EXPECT_EQ((*book)->stock_locate(), 1u);
@@ -334,13 +335,13 @@ TEST(Decoder, TinyAddFixture)
     EXPECT_EQ(resting_quantity(**book, 12345), 100u);
 }
 
-TEST(ShardedDecoder, MatchesSingleThreadOnEveryShardCount)
+TEST(ItchShardedDecoder, MatchesSingleThreadOnEveryShardCount)
 {
     const auto path = fixture("session_mix.bin");
-    auto expected = SingleThreadDecoder::decode_file(path);
+    auto expected = ItchSingleThreadDecoder::decode_file(path);
     ASSERT_TRUE(expected.has_value()) << expected.error();
     for (std::size_t shards : {1u, 2u, 3u, 8u}) {
-        auto result = ShardedDecoder::decode_file(path, shards);
+        auto result = ItchShardedDecoder::decode_file(path, shards);
         ASSERT_TRUE(result.has_value()) << result.error();
         EXPECT_EQ((*result)->security_locates().size(), (*expected)->security_locates().size()) << shards;
         for (const InstrumentId locate : (*expected)->security_locates()) {
@@ -348,10 +349,10 @@ TEST(ShardedDecoder, MatchesSingleThreadOnEveryShardCount)
             const auto got = (*result)->find(locate);
             ASSERT_TRUE(got.has_value()) << "locate " << locate << " shards " << shards;
             EXPECT_EQ((*got)->order_mapping.size(), (*want)->order_mapping.size());
-            EXPECT_EQ(depth_snapshot((*got)->bid_levels, 100).size(), depth_snapshot((*want)->bid_levels, 100).size());
-            EXPECT_EQ(depth_snapshot((*got)->ask_levels, 100).size(), depth_snapshot((*want)->ask_levels, 100).size());
+            EXPECT_EQ((*got)->bid_depth(100).size(), (*want)->bid_depth(100).size());
+            EXPECT_EQ((*got)->ask_depth(100).size(), (*want)->ask_depth(100).size());
         }
-        EXPECT_EQ((*result)->directory.lookup(1), (*expected)->directory.lookup(1)) << shards;
+        EXPECT_EQ((*result)->itch_directory.lookup(1), (*expected)->itch_directory.lookup(1)) << shards;
     }
 }
 
@@ -406,6 +407,22 @@ LevelQueues book_queues(const AggregateSecurityBook<Levels, Orders>& book, Side 
     return queues;
 }
 
+template <typename QueueBook>
+    requires requires(QueueBook& book) { book.queue_at(Side::BID, Price{}); }
+LevelQueues book_queues(QueueBook& book, Side side)
+{
+    LevelQueues queues;
+    for (const LevelSummary& level : side == Side::BID ? book.bid_depth(SIZE_MAX) : book.ask_depth(SIZE_MAX)) {
+        std::vector<uint64_t> ids{static_cast<uint64_t>(level.price)};
+        for (const auto& [id, quantity] : book.queue_at(side, level.price)) {
+            ids.push_back(id);
+            ids.push_back(quantity);
+        }
+        queues.push_back(std::move(ids));
+    }
+    return queues;
+}
+
 std::vector<std::pair<Price, uint32_t>> as_pairs(const std::vector<LevelSummary>& levels)
 {
     std::vector<std::pair<Price, uint32_t>> pairs;
@@ -425,6 +442,9 @@ void expect_matches_tree_book(int compare_queues_every)
     constexpr Price kBestAsk = kBestBid + kTick;
     SecurityBook tree(1);
     CandidateBook candidate(1);
+    if constexpr (requires { candidate.set_tick(kTick); }) {
+        candidate.set_tick(kTick);
+    }
     std::mt19937_64 random(20261014);
     std::vector<uint64_t> live;
     uint64_t next_id = 1;
@@ -511,6 +531,153 @@ TEST(AggregateBook, IdentityHashLadderMatchesTreeBookOnRandomOperations)
     expect_matches_tree_book<IdentityLadderSecurityBook>(10);
 }
 
+TEST(AggregateBook, MapLevelsMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<MapAggregateSecurityBook>(10);
+}
+
+TEST(AggregateBook, LinearLevelsMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<LinearAggregateSecurityBook>(10);
+}
+
+TEST(PooledBook, HybridQueuesMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<PooledHybridSecurityBook>(1);
+}
+
+TEST(PooledBook, LadderQueuesMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<PooledLadderSecurityBook>(1);
+}
+
+TEST(LazyQueueBook, HashedQueuesMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<LazyHashLadderSecurityBook>(1);
+}
+
+TEST(LazyQueueBook, SlotQueuesMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<LazySlotLadderSecurityBook>(1);
+}
+
+TEST(LazyQueueBook, HandleQueuesMatchTreeBookOnRandomOperations)
+{
+    expect_matches_tree_book<LazyHandleLadderSecurityBook>(1);
+}
+
+namespace {
+
+uint32_t match_front_of_queue(SecurityBook& book, Side resting_side, Price limit, uint32_t quantity,
+                              std::vector<Fill>& fills)
+{
+    while (quantity > 0) {
+        const auto best = resting_side == Side::BID ? book.best_bid() : book.best_ask();
+        if (!best || (resting_side == Side::BID ? *best < limit : *best > limit)) {
+            break;
+        }
+        const Order& front = resting_side == Side::BID ? book.bid_levels.begin()->second.orders.front()
+                                                       : book.ask_levels.begin()->second.orders.front();
+        const uint64_t id = front.order_reference_number();
+        const uint32_t filled = std::min(quantity, front.quantity());
+        fills.push_back(Fill{id, *best, filled});
+        quantity -= filled;
+        book.execute_order(id, filled);
+    }
+    return quantity;
+}
+
+}  // namespace
+
+template <typename LazyBook>
+void expect_match_fills_front_of_queue()
+{
+    constexpr Price kTick = 25;
+    constexpr Price kBestBid = 1'000'000;
+    constexpr Price kBestAsk = kBestBid + kTick;
+    SecurityBook tree(1);
+    LazyBook candidate(1);
+    candidate.set_tick(kTick);
+    std::mt19937_64 random(20261015);
+    std::vector<uint64_t> live;
+    uint64_t next_id = 1;
+    std::size_t total_fills = 0;
+
+    for (int step = 0; step < 20'000; ++step) {
+        const auto roll = random() % 20;
+        if (roll < 9 || live.empty()) {
+            const Side side = random() % 2 == 0 ? Side::BID : Side::ASK;
+            const Price ticks = static_cast<Price>(random() % 20);
+            const Price price = side == Side::BID ? kBestBid - ticks * kTick : kBestAsk + ticks * kTick;
+            const auto quantity = static_cast<uint32_t>(1 + random() % 500);
+            tree.add_order(next_id, side, price, quantity);
+            candidate.add_order(next_id, side, price, quantity);
+            live.push_back(next_id++);
+        } else if (roll < 17) {
+            const std::size_t pick = random() % live.size();
+            const uint64_t id = live[pick];
+            if (const auto mapping = tree.order_mapping.find(id); mapping != tree.order_mapping.end()) {
+                const Order& resting = *mapping->second.it;
+                if (roll < 12) {
+                    const auto cancelled = static_cast<uint32_t>(1 + random() % resting.quantity());
+                    tree.cancel_order(id, cancelled);
+                    candidate.cancel_order(id, cancelled);
+                } else if (roll < 15) {
+                    const Price moved = resting.price() + (static_cast<Price>(random() % 5) - 2) * kTick;
+                    const Price new_price =
+                        resting.side() == Side::BID ? std::min(moved, kBestBid) : std::max(moved, kBestAsk);
+                    const auto new_quantity = static_cast<uint32_t>(random() % 600);
+                    tree.modify_order(id, new_price, new_quantity);
+                    candidate.modify_order(id, new_price, new_quantity);
+                } else {
+                    tree.delete_order(id);
+                    candidate.delete_order(id);
+                }
+            }
+            if (!tree.order_mapping.contains(id)) {
+                live[pick] = live.back();
+                live.pop_back();
+            }
+        } else {
+            const Side resting_side = random() % 2 == 0 ? Side::BID : Side::ASK;
+            const Price reach = static_cast<Price>(random() % 4) * kTick;
+            const Price limit = resting_side == Side::BID ? kBestBid - reach : kBestAsk + reach;
+            const auto quantity = static_cast<uint32_t>(1 + random() % 2000);
+            std::vector<Fill> want;
+            std::vector<Fill> got;
+            const uint32_t want_left = match_front_of_queue(tree, resting_side, limit, quantity, want);
+            const uint32_t got_left =
+                candidate.match(resting_side, limit, quantity, [&](const Fill& fill) { got.push_back(fill); });
+            ASSERT_EQ(got, want) << "step " << step;
+            ASSERT_EQ(got_left, want_left) << "step " << step;
+            total_fills += want.size();
+        }
+        ASSERT_EQ(candidate.resting_orders(), tree.resting_orders()) << "step " << step;
+        ASSERT_EQ(as_pairs(candidate.bid_depth(SIZE_MAX)), as_pairs(tree.bid_depth(SIZE_MAX))) << "step " << step;
+        ASSERT_EQ(as_pairs(candidate.ask_depth(SIZE_MAX)), as_pairs(tree.ask_depth(SIZE_MAX))) << "step " << step;
+        if (step % 50 == 0) {
+            ASSERT_EQ(book_queues(candidate, Side::BID), book_queues(tree, Side::BID)) << "step " << step;
+            ASSERT_EQ(book_queues(candidate, Side::ASK), book_queues(tree, Side::ASK)) << "step " << step;
+        }
+    }
+    EXPECT_GT(total_fills, 1000u);
+}
+
+TEST(LazyQueueBook, HashedMatchFillsFrontOfQueueLikeTreeBook)
+{
+    expect_match_fills_front_of_queue<LazyHashLadderSecurityBook>();
+}
+
+TEST(LazyQueueBook, SlotMatchFillsFrontOfQueueLikeTreeBook)
+{
+    expect_match_fills_front_of_queue<LazySlotLadderSecurityBook>();
+}
+
+TEST(LazyQueueBook, HandleMatchFillsFrontOfQueueLikeTreeBook)
+{
+    expect_match_fills_front_of_queue<LazyHandleLadderSecurityBook>();
+}
+
 template <typename Index>
 void expect_index_matches_unordered_map()
 {
@@ -559,10 +726,18 @@ TEST(FlatOrderIndex, IdentityHashMatchesUnorderedMapUnderHeavyChurn)
     expect_index_matches_unordered_map<IdentityFlatOrderIndex>();
 }
 
-TEST(PriceLadder, RefinesTickAndGrowsBothWays)
+TEST(PriceLadder, RequiresTick)
+{
+    PriceLadder<std::less<>> asks;
+    EXPECT_THROW(asks.add(1000, 10), std::logic_error);
+}
+
+TEST(PriceLadder, GrowsBothWays)
 {
     PriceLadder<std::greater<>> bids;
     PriceLadder<std::less<>> asks;
+    bids.set_tick(25);
+    asks.set_tick(25);
     std::map<Price, uint32_t, std::greater<>> bid_reference;
     std::map<Price, uint32_t> ask_reference;
     const std::vector<Price> prices = {1000, 1300, 1150, 700, 1025, 1975, 25, 1000, 1300};
@@ -629,6 +804,9 @@ TEST(BookVariants, EveryVariantMatchesTreeOnGeneratedFlow)
         for_each_book_variant([&]<typename B>(std::type_identity<B>, const BookVariantInfo& info) {
             Book expected;
             B candidate;
+            for (InstrumentId instrument = 0; instrument < config.instruments; ++instrument) {
+                candidate.set_tick(instrument, flow.ticks[instrument]);
+            }
             for (std::size_t i = 0; i < flow.ops.size(); ++i) {
                 const BookOp& op = flow.ops[i];
                 auto& want = expected.book_for(op.instrument);

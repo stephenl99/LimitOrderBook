@@ -191,7 +191,7 @@ real replay the fix itself measured neutral (14.05 vs 14.27 M/s, overlapping).
 ### Batching the consumer
 
 `CircularBuffer::pop_batch` reads `tail_` once, consumes everything available up to a limit, then stores `head_` once.
-`MessagePipeline` takes a `MaxBatch` template parameter (default 1). `queue_bench batching`, back-off ring, three
+`MessagePipeline` takes a max batch size as a constructor argument (default 1). `queue_bench batching`, back-off ring, three
 separate sessions:
 
 | | session 1 | session 2 | session 3 |
@@ -207,7 +207,7 @@ noisy. Latency at p50 is unchanged. On the full ITCH ring decoder, batch 64 took
 
 A book can't have two threads applying messages to it, so the only correct multi-consumer design is **sharding**:
 the parser sends each message to one of K rings by instrument, and each consumer owns its own books
-(`ShardedDecoder`, books merged at the end; `ShardedDecoder.MatchesSingleThreadOnEveryShardCount` checks it builds
+(`ItchShardedDecoder`, books merged at the end; `ItchShardedDecoder.MatchesSingleThreadOnEveryShardCount` checks it builds
 the same book). For comparison, a general multi-consumer queue (Vyukov's bounded MPMC queue: a sequence number per
 slot, compare-and-swap on the shared positions) where any consumer takes any item — fine for integers, wrong for a book.
 
@@ -342,7 +342,7 @@ never seen as finished. They are kept now, and the record count matches Databent
 ## The book: price level storage
 
 Price levels are a template parameter on `BasicSecurityBook` (instantiated in `SecurityBook.cpp`), picked per run with
-`databento_replay ... <mode> tree|flat|hybrid 1|64`:
+`databento_replay ... <mode> tree|flat|hybrid <batch>`:
 
 - **tree**: `std::map<Price, Level>` per side
 - **flat**: sorted vector of (price, level pointer), best price at the back, linear search from the back
@@ -411,13 +411,51 @@ cache-line handoffs.
 ### False sharing, second time
 
 Moving the record counter to the producer put it on the same 128-byte line as the book's instrument lookup, which the
-consumer reads on every message (`MboSession::records_` at byte 240, `book_` at 128 to 223; `Shard::records` at byte 96
+consumer reads on every message (`DatabentoSession::records_` at byte 240, `book_` at 128 to 223; `Shard::records` at byte 96
 right after `Shard::book`). It showed up as a 1-slot instrument cache losing to a 64-slot one only in threaded runs. With
 the producer counters on their own line: ring + tree 14.4 to 16.2 M/s, ring + 1-slot cache 22.7 to 28.4, ring + 64-slot
 cache unchanged (its hot slots were already on other lines). Sharding numbers above the fix are understated.
 
 Every book gives identical 40-level depth after every completed event on all six instruments; TSan and ASan are clean.
 `make replay MBO_THREADING=ring MBO_BOOK=ladder-cached64 MBO_BATCH=64` runs any combination.
+
+## Two readers of a book: market maker and exchange
+
+A market maker reading the feed needs the price and size at each level, fast, so it can move its quotes. The exchange
+has to match, so it needs the queue at each level. The books split the same way: `Book/InnerBook/MarketMaker/` keeps
+totals per price, `Book/InnerBook/Exchange/` keeps real FIFO queues.
+
+`databento_replay <file> x 0 "" 40 0 variants all` times every `book_bench` variant on a Databento file, book only, and
+hashes the final depth of every instrument. All 17 end in the same state. Six CME futures, 1,054,337 records, 64-slot
+instrument cache, median of 15 passes, ns/record:
+
+| level container | market maker: totals only | exchange: list queue | exchange: pooled queue | exchange: lazy queue |
+|---|---|---|---|---|
+| `std::map` | 47.3 (`agg-map`) | 46.4 (`tree`) | | |
+| sorted vector, linear | 42.8 (`agg-linear`) | 46.1 (`flat`) | | |
+| sorted vector, 8 probes then binary | 33.0 (`agg-flat`) | 39.2 (`hybrid`) | 34.6 (`pooled-hybrid`) | |
+| ladder | 24.6 (`ladder`) | | 26.7 (`pooled-ladder`) | 33.3 (`lazy-handle-ladder`) |
+
+`book_bench` on the generated scenarios gives the same order (ns/op, median of 5):
+
+| | equity | deep | wide | multi | cme6 |
+|---|---|---|---|---|---|
+| `agg-map` | 33.4 | 30.5 | 37.8 | 51.7 | 40.1 |
+| `agg-flat` | 25.1 | 22.5 | 29.7 | 36.8 | 29.4 |
+| `ladder` | 18.8 | 16.9 | 19.8 | 27.9 | 22.6 |
+| `tree` | 41.3 | 41.1 | 44.2 | 66.8 | 49.3 |
+| `pooled-ladder` | 20.1 | 19.2 | 21.3 | 31.0 | 24.3 |
+| `lazy-handle-ladder` | 26.3 | 25.9 | 27.6 | 40.0 | 33.7 |
+
+- Flat wins for both readers. The map is the slowest container whether or not the level holds a queue.
+- Keeping the queue costs 2.1 ns on CME (`ladder` 24.6 vs `pooled-ladder` 26.7) when the queue lives in flat arrays,
+  and 22 ns when it lives in `std::list` nodes (`tree`). On the Linux i7, `pooled-ladder` beat `ladder` outright.
+- The lazy queue (append-only per price, stale entries skipped at match time) loses to the pooled one everywhere.
+  Indexing its queues by tick slot instead of hashing the price did not help: with compaction turned off it drops to
+  30.0, so about 3.5 ns is compaction and the rest is the second write per add.
+- Indexing queues directly by tick slot (`lazy-slot-ladder`, 40.8) is worse than hashing on CME: one side of one
+  instrument spans 904,815 ticks with 932 in use, because of resting orders far from the touch. A 4-byte handle per
+  tick into a dense pool (`lazy-handle-ladder`) fixes that.
 
 ## Fixtures
 

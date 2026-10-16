@@ -1,6 +1,6 @@
 #include "Message/Itch/HandleMessage.h"
 
-#include "Book/Order.h"
+#include "Book/InnerBook/Order.h"
 #include "Message/Itch/AddOrderMessage.h"
 #include "Message/Itch/OrderCancelMessage.h"
 #include "Message/Itch/OrderDeleteMessage.h"
@@ -11,7 +11,7 @@
 
 namespace itch {
 
-void handle_message(const std::unique_ptr<Message>& message, Book* book)
+void handle_message(const std::unique_ptr<Message>& message, ItchBook* book)
 {
     if (message == nullptr) {
         return;
@@ -23,7 +23,7 @@ void handle_message(const std::unique_ptr<Message>& message, Book* book)
     switch (message->message_type()) {
     case 'R': {
         const auto& directory_msg = dynamic_cast<const StockDirectoryMessage&>(*message);
-        book->directory.add(stock_locate, directory_msg.stock());
+        book->itch_directory.add(stock_locate, directory_msg.stock());
         break;
     }
     case 'A':

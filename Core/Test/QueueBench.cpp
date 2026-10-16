@@ -24,15 +24,15 @@
 #include <sched.h>
 #endif
 
-#include "Baseline/MutexDecoder.h"
-#include "Baseline/SingleThreadDecoder.h"
+#include "Baseline/ItchMutexDecoder.h"
+#include "Baseline/ItchSingleThreadDecoder.h"
 #include "Core/CircularBuffer.h"
 #include "Core/IdleStrategy.h"
-#include "Core/Decoder.h"
+#include "Core/ItchDecoder.h"
 #include "Core/MappedFile.h"
 #include "Core/MessagePipeline.h"
 #include "Core/SequencedBuffer.h"
-#include "Core/ShardedDecoder.h"
+#include "Core/ItchShardedDecoder.h"
 #include "Message/Itch/DecodeMessage.h"
 #include "Message/Itch/FrameReader.h"
 #include "Message/Itch/HandleMessage.h"
@@ -806,16 +806,15 @@ int run_fanout(std::int64_t items, int runs)
     return 0;
 }
 
-template <std::size_t MaxBatch>
-std::expected<std::unique_ptr<Book>, std::string> decode_ring_batched(const fs::path& path)
+std::expected<std::unique_ptr<ItchBook>, std::string> decode_ring_batched(const fs::path& path, std::size_t max_batch)
 {
     const auto file = MappedFile::open(path);
     if (!file) {
         return std::unexpected(file.error());
     }
-    auto book = std::make_unique<Book>();
-    auto pipeline = make_pipeline<std::unique_ptr<itch::Message>, kRingCapacity, YieldWhenIdle, MaxBatch>(
-        [&book](std::unique_ptr<itch::Message>& message) { itch::handle_message(message, book.get()); });
+    auto book = std::make_unique<ItchBook>();
+    auto pipeline = make_pipeline<std::unique_ptr<itch::Message>, kRingCapacity, YieldWhenIdle>(
+        [&book](std::unique_ptr<itch::Message>& message) { itch::handle_message(message, book.get()); }, max_batch);
     std::thread parse_thread([&] {
         itch::FrameReader frames(file->bytes());
         while (const auto frame = frames.next()) {
@@ -837,17 +836,17 @@ int run_shards(const fs::path& path, int runs)
         return 1;
     }
     const std::array<std::string, 7> impls = {"single", "ring", "ring_batch64", "sharded1", "sharded2", "sharded4", "sharded8"};
-    auto decode = [&](const std::string& impl) -> std::expected<std::unique_ptr<Book>, std::string> {
+    auto decode = [&](const std::string& impl) -> std::expected<std::unique_ptr<ItchBook>, std::string> {
         if (impl == "single") {
-            return SingleThreadDecoder::decode_file(path);
+            return ItchSingleThreadDecoder::decode_file(path);
         }
         if (impl == "ring") {
-            return Decoder::decode_file(path);
+            return ItchDecoder::decode_file(path);
         }
         if (impl == "ring_batch64") {
-            return decode_ring_batched<64>(path);
+            return decode_ring_batched(path, 64);
         }
-        return ShardedDecoder::decode_file(path, std::stoul(impl.substr(7)));
+        return ItchShardedDecoder::decode_file(path, std::stoul(impl.substr(7)));
     };
     for (const std::string& impl : impls) {
         if (!decode(impl)) {
@@ -880,9 +879,9 @@ int run_decode(const fs::path& path, int runs)
 
     auto decode = [&](const std::string& impl) {
         if (impl == "single") {
-            return SingleThreadDecoder::decode_file(path);
+            return ItchSingleThreadDecoder::decode_file(path);
         }
-        return impl == "mutex" ? MutexDecoder::decode_file(path) : Decoder::decode_file(path);
+        return impl == "mutex" ? ItchMutexDecoder::decode_file(path) : ItchDecoder::decode_file(path);
     };
 
     const std::array<std::string, 3> impls = {"single", "mutex", "ring"};
