@@ -9,9 +9,10 @@
 #include <type_traits>
 #include <utility>
 
-#include "CircularBuffer.h"
-#include "IdleStrategy.h"
-#include "ThreadPinning.h"
+#include "Core/ThreadPinning.h"
+#include "Handoff/BufferTraits.h"
+#include "Handoff/IdleStrategy.h"
+#include "Handoff/Ring/CircularBuffer.h"
 // invocable to make sure the handler can accept the message as an arg
 template <Usable Message, std::size_t Capacity, std::invocable<Message&> Handler, IdleStrategy Idle = YieldWhenIdle,
           template <Usable, std::size_t> class Buffer = CircularBuffer>

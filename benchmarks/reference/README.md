@@ -1,14 +1,14 @@
 # queue benchmarks
 
 Linux results (book data structures across 8 synthetic scenarios, queues by thread placement, how the perf tooling
-works): [`benchmarks/linux/README.md`](linux/README.md).
+works): [`benchmarks/linux/README.md`](../linux/README.md).
 
 Comparing ways to hand messages from the parser thread to the handler thread:
 
-- **mutex + condvar** — the original, `std::queue` behind a mutex. Kept in `Core/Source/Baseline/MutexDecoder.cpp`.
-- **ring, yield when idle** — the lock-free SPSC ring in `Core/Source/Core/CircularBuffer.h`, calling `std::this_thread::yield()` when full/empty. This is what `Decoder` uses.
+- **mutex + condvar** — the original, `std::queue` behind a mutex. Kept in `Core/Source/Core/ItchMutexDecoder.cpp`.
+- **ring, yield when idle** — the lock-free SPSC ring in `Core/Source/Handoff/Ring/CircularBuffer.h`, calling `std::this_thread::yield()` when full/empty. This is what `Decoder` uses.
 - **ring, spin when idle** — same ring, CPU pause instruction instead of `yield()`.
-- **single thread** — no queue at all (`Core/Source/Baseline/SingleThreadDecoder.cpp`). Only in the decode test.
+- **single thread** — no queue at all (`Core/Source/Core/ItchSingleThreadDecoder.cpp`). Only in the decode test.
 
 File mapping, framing, `itch::decode_message`, `itch::handle_message` and the book are shared, so the handoff is the only difference.
 
@@ -124,7 +124,7 @@ Clock resolution here is ~42 ns (mach ticks), so 83, 125 and 167 are 2, 3 and 4 
 ## Idle strategy
 
 What a side does when the ring is empty (consumer) or full (producer). It's a template parameter on
-`MessagePipeline` (`Core/Source/Core/IdleStrategy.h`):
+`MessagePipeline` (`Core/Source/Handoff/IdleStrategy.h`):
 
 - **yield** — `std::this_thread::yield()`, a system call that gives the core to the OS scheduler
 - **spin** — a pause instruction in a tight loop, never gives the core up

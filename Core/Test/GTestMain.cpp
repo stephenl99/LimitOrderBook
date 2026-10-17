@@ -2,7 +2,7 @@
 #include "BookVariants/OrderFlow.h"
 #include "Book/OuterBook/ItchBook.h"
 #include "Book/OuterBook/OuterBook.h"
-#include "Baseline/ItchSingleThreadDecoder.h"
+#include "Core/ItchSingleThreadDecoder.h"
 #include "Core/ItchDecoder.h"
 #include "Core/ItchShardedDecoder.h"
 #include "Book/OuterBook/ItchSecurityDirectory.h"
@@ -14,10 +14,10 @@
 #include "Message/Itch/OrderReplaceMessage.h"
 #include "Message/Itch/StockDirectoryMessage.h"
 
-#include "Baseline/MutexPipeline.h"
-#include "Core/MessagePipeline.h"
-#include "Core/MutexBuffer.h"
-#include "Core/SequencedBuffer.h"
+#include "Handoff/MessagePipeline.h"
+#include "Handoff/Mutex/MutexBuffer.h"
+#include "Handoff/Mutex/MutexPipeline.h"
+#include "Handoff/Sequenced/SequencedBuffer.h"
 
 #include <gtest/gtest.h>
 

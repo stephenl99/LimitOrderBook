@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "MappedFile.h"
-#include "MessagePipeline.h"
+#include "Handoff/MessagePipeline.h"
 #include "Message/Itch/DecodeMessage.h"
 #include "Message/Itch/FrameReader.h"
 #include "Message/Itch/HandleMessage.h"

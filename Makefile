@@ -79,11 +79,12 @@ profile: $(PROFILE_FIXTURE)
 	open bench.trace
 
 PROFILE_SECONDS ?= 10
-PROFILE_TEXT := benchmarks/profile_sample.txt
+BENCH_DIR := benchmarks/reference
+PROFILE_TEXT := $(BENCH_DIR)/profile_sample.txt
 
 profile_text: $(PROFILE_FIXTURE)
 	$(call cmake_build,release,$(PROFILE_TARGET))
-	@mkdir -p benchmarks
+	@mkdir -p $(BENCH_DIR)
 	@$(RELEASE_BIN)/$(PROFILE_TARGET) $(PROFILE_ARGS) > /dev/null & pid=$$!; sleep 2; \
 		sample $$pid $(PROFILE_SECONDS) 1 -file $(PROFILE_TEXT) > /dev/null 2>&1; kill $$pid 2> /dev/null; wait $$pid 2> /dev/null; true
 	@sed -n '/Sort by top of stack/,$$p' $(PROFILE_TEXT) | head -32
@@ -93,10 +94,10 @@ QUEUE_SIZES := 10000 100000 1000000
 QUEUE_FIXTURES := $(foreach n,$(QUEUE_SIZES),testdata/queue_$(n).bin)
 QUEUE_RUNS ?= 15
 QUEUE_ITEMS ?= 5000000
-QUEUE_CSV := benchmarks/queue_bench.csv
+QUEUE_CSV := $(BENCH_DIR)/queue_bench.csv
 LATENCY_RATES := 10000 100000 1000000
 LATENCY_RUNS ?= 7
-LATENCY_CSV := benchmarks/latency.csv
+LATENCY_CSV := $(BENCH_DIR)/latency.csv
 QUEUE_BENCH := $(RELEASE_BIN)/queue_bench
 
 testdata/queue_%.bin:
@@ -108,13 +109,13 @@ $(VENV)/bin/python:
 
 queue_report: $(QUEUE_FIXTURES) $(VENV)/bin/python
 	$(call cmake_build,release,queue_bench)
-	@mkdir -p benchmarks
+	@mkdir -p $(BENCH_DIR)
 	echo "bench,impl,size,run,ms" > $(QUEUE_CSV)
 	$(QUEUE_BENCH) queue $(QUEUE_ITEMS) $(QUEUE_RUNS) >> $(QUEUE_CSV)
 	for f in $(QUEUE_FIXTURES); do $(QUEUE_BENCH) decode $$f $(QUEUE_RUNS) >> $(QUEUE_CSV); done
 	echo "bench,impl,rate,run,p50_ns,p99_ns,p999_ns,max_ns,consumer_cpu_pct" > $(LATENCY_CSV)
 	for r in $(LATENCY_RATES); do $(QUEUE_BENCH) latency $$r $(LATENCY_RUNS) >> $(LATENCY_CSV); done
-	$(VENV)/bin/python tools/plot_queue_bench.py $(QUEUE_CSV) $(LATENCY_CSV) benchmarks
+	$(VENV)/bin/python tools/plot_queue_bench.py $(QUEUE_CSV) $(LATENCY_CSV) $(BENCH_DIR)
 
 BOOK_ARGS ?=
 QUEUE_ARGS ?=
@@ -126,13 +127,13 @@ linux_queue_report:
 	tools/linux/queue_bench.sh $(QUEUE_ARGS)
 
 SWEEP_RUNS ?= 3
-SWEEP_CSV := benchmarks/backoff_sweep.csv
+SWEEP_CSV := $(BENCH_DIR)/backoff_sweep.csv
 
 backoff_sweep: $(VENV)/bin/python
 	$(call cmake_build,release,queue_bench)
-	@mkdir -p benchmarks
+	@mkdir -p $(BENCH_DIR)
 	$(QUEUE_BENCH) sweep $(SWEEP_RUNS) > $(SWEEP_CSV)
-	$(VENV)/bin/python tools/plot_backoff_sweep.py $(SWEEP_CSV) benchmarks
+	$(VENV)/bin/python tools/plot_backoff_sweep.py $(SWEEP_CSV) $(BENCH_DIR)
 
 LIVE_SYMBOL ?= ESZ6
 LIVE_SECONDS ?= 15
@@ -172,14 +173,14 @@ COMPARE_RUNS ?= 25
 
 replay_compare:
 	$(call cmake_build,release,databento_replay)
-	python3 tools/compare_replay.py $(RELEASE_BIN)/databento_replay $(MBO_FILE) $(MBO_SYMBOL) $(COMPARE_RUNS) benchmarks/replay_threading.csv
+	python3 tools/compare_replay.py $(RELEASE_BIN)/databento_replay $(MBO_FILE) $(MBO_SYMBOL) $(COMPARE_RUNS) $(BENCH_DIR)/replay_threading.csv
 
 MATRIX_RUNS ?= 11
 MATRIX_FILES ?= $(MBO_FILE)
 
 replay_matrix:
 	$(call cmake_build,release,databento_replay)
-	python3 tools/replay_matrix.py $(RELEASE_BIN)/databento_replay benchmarks/replay_matrix.csv $(MATRIX_RUNS) $(MATRIX_FILES) $(MATRIX_ARGS)
+	python3 tools/replay_matrix.py $(RELEASE_BIN)/databento_replay $(BENCH_DIR)/replay_matrix.csv $(MATRIX_RUNS) $(MATRIX_FILES) $(MATRIX_ARGS)
 
 DEPTH_CSV := $(MBO_FILE:.mbo.dbn.zst=.depth.csv)
 DEPTH_EVERY ?= 1

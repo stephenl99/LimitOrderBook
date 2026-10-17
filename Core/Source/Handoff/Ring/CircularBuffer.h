@@ -7,10 +7,7 @@
 #include <optional>
 #include <utility>
 
-inline constexpr std::size_t kCacheLineSize = 128;
-
-template <typename T>
-concept Usable = std::movable<T> && std::default_initializable<T>;
+#include "Handoff/BufferTraits.h"
 
 template <Usable T, std::size_t Capacity>
 class CircularBuffer {

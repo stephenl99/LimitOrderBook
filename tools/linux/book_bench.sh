@@ -7,7 +7,7 @@ usage() {
 usage: tools/linux/book_bench.sh [options]
 
 Replays the same order flow through every book implementation, one process per
-run, pinned to one CPU. Writes to \$OUT (default benchmarks/linux):
+run, pinned to one CPU. Writes to \$OUT/reference (default benchmarks/linux/reference):
   book_throughput.csv  book_latency.csv  book_perf.csv  book_env.txt  book_*.png
 
   --runs N            timed runs per implementation and scenario (default 5)
@@ -67,8 +67,9 @@ done
 setup_cpus
 build_release book_bench
 BENCH=$RELEASE_BIN/book_bench
-mkdir -p "$OUT/flows"
-machine_info > "$OUT/book_env.txt"
+DATA_OUT=$OUT/reference
+mkdir -p "$OUT/flows" "$DATA_OUT"
+machine_info > "$DATA_OUT/book_env.txt"
 warn_noise
 
 if [[ -z $IMPLS ]]; then
@@ -79,9 +80,9 @@ IFS=, read -r -a scenario_list <<< "$SCENARIOS"
 [[ -n $ITCH ]] && scenario_list+=(itch)
 
 PIN=(taskset -c "$PRIMARY_CPU")
-THROUGHPUT_CSV=$OUT/book_throughput.csv
-LATENCY_CSV=$OUT/book_latency.csv
-PERF_CSV=$OUT/book_perf.csv
+THROUGHPUT_CSV=$DATA_OUT/book_throughput.csv
+LATENCY_CSV=$DATA_OUT/book_latency.csv
+PERF_CSV=$DATA_OUT/book_perf.csv
 "$BENCH" throughput --ops 1 --runs 0 > "$THROUGHPUT_CSV"
 "$BENCH" latency --ops 1 --runs 0 > "$LATENCY_CSV"
 echo "scenario,impl,ops,event,value,counted_pct" > "$PERF_CSV"
@@ -154,6 +155,6 @@ EOF
 note "every implementation built the same book in every scenario"
 
 if ((PLOT)); then
-    "$PYTHON" "$ROOT/tools/plot_linux_bench.py" book "$OUT"
+    "$PYTHON" "$ROOT/tools/plot_linux_bench.py" book "$DATA_OUT"
 fi
-note "results in $OUT"
+note "results in $DATA_OUT"

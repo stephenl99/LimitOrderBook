@@ -1,4 +1,4 @@
-#include "Baseline/ItchSingleThreadDecoder.h"
+#include "Core/ItchSingleThreadDecoder.h"
 
 #include "Core/MappedFile.h"
 #include "Message/Itch/DecodeMessage.h"

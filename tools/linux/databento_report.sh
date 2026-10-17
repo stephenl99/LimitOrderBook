@@ -75,8 +75,9 @@ build_release databento_replay book_bench
 REPLAY=$RELEASE_BIN/databento_replay
 BOOK=$RELEASE_BIN/book_bench
 DB_OUT=$OUT/databento
-mkdir -p "$DB_OUT/flows" "$DB_OUT/data"
-machine_info > "$DB_OUT/env.txt"
+DATA_OUT=$DB_OUT/reference
+mkdir -p "$DB_OUT/flows" "$DB_OUT/data" "$DATA_OUT"
+machine_info > "$DATA_OUT/env.txt"
 warn_noise
 
 IFS=, read -r -a handoff_books <<< "$HANDOFF_BOOKS"
@@ -109,7 +110,7 @@ run_replay() {
     LOB_CPUS=$cpus "$REPLAY" "$file" x 0 "" 40 0 "$mode" "$book" "$batch" "$handoff" | msgs_per_sec
 }
 
-THROUGHPUT_CSV=$DB_OUT/throughput.csv
+THROUGHPUT_CSV=$DATA_OUT/throughput.csv
 if wants handoff || wants buffers || wants placement; then
     echo "file,compression,experiment,placement,mode,book,batch,handoff,run,msgs_per_sec" > "$THROUGHPUT_CSV"
 fi
@@ -173,9 +174,9 @@ if ((${#configs[@]} > 0)); then
 fi
 
 if wants latency; then
-    LATENCY_CSV=$DB_OUT/latency.csv
+    LATENCY_CSV=$DATA_OUT/latency.csv
     rm -f "$LATENCY_CSV" "$LATENCY_CSV.cdf"
-    UTIL_CSV=$DB_OUT/consumer_cpu.csv
+    UTIL_CSV=$DATA_OUT/consumer_cpu.csv
     echo "file,book,handoff,batch,consumer_busy_pct" > "$UTIL_CSV"
     consumer_cpu=$(echo "$CROSS_CPUS" | cut -d, -f2)
     file=${LATENCY_FILE:-$(ls -Sr "${FILES[@]}" | head -n 1)}
@@ -199,9 +200,9 @@ if wants latency; then
 fi
 
 if wants books; then
-    VARIANTS_CSV=$DB_OUT/book_variants.csv
+    VARIANTS_CSV=$DATA_OUT/book_variants.csv
     echo "file,book,levels,index,orders,cache,median_ns,min_ns,resting_orders,depth_hash" > "$VARIANTS_CSV"
-    BOOK_LAT_CSV=$DB_OUT/book_latency.csv
+    BOOK_LAT_CSV=$DATA_OUT/book_latency.csv
     "$BOOK" latency --ops 1 --runs 0 > "$BOOK_LAT_CSV"
     for file in "${FILES[@]}"; do
         name=$(name_of "$file")
@@ -240,4 +241,4 @@ fi
 if ((PLOT)); then
     "$PYTHON" "$ROOT/tools/plot_databento.py" "$DB_OUT"
 fi
-note "results in $DB_OUT, charts in $DB_OUT/images"
+note "results in $DATA_OUT, charts in $DB_OUT/images"

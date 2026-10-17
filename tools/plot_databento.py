@@ -540,21 +540,22 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: plot_databento.py <benchmarks/linux/databento>")
     out = Path(sys.argv[1])
+    data = out / "reference"
     images = out / "images"
     images.mkdir(parents=True, exist_ok=True)
-    throughput = read(out / "throughput.csv")
+    throughput = read(data / "throughput.csv")
     plot_modes(throughput, images)
     plot_buffers(throughput, images)
     plot_placement(throughput, images)
-    plot_latency(read(out / "latency.csv"), images)
-    plot_latency_cdf(read(out / "latency.csv.cdf"), images)
-    plot_consumer_cpu(read(out / "consumer_cpu.csv"), images)
-    variants = read(out / "book_variants.csv")
+    plot_latency(read(data / "latency.csv"), images)
+    plot_latency_cdf(read(data / "latency.csv.cdf"), images)
+    plot_consumer_cpu(read(data / "consumer_cpu.csv"), images)
+    variants = read(data / "book_variants.csv")
     plot_books(variants, images)
     plot_book_matrix(variants, images)
-    plot_book_op_latency(read(out / "book_latency.csv"), images)
+    plot_book_op_latency(read(data / "book_latency.csv"), images)
     perf_charts(out, images)
-    plot_combos(out, images)
+    plot_combos(data, images)
 
 
 if __name__ == "__main__":

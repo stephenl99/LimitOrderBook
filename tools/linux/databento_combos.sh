@@ -41,7 +41,8 @@ setup_cpus
 build_release databento_replay
 REPLAY=$RELEASE_BIN/databento_replay
 DB_OUT=$OUT/databento
-mkdir -p "$DB_OUT/data"
+DATA_OUT=$DB_OUT/reference
+mkdir -p "$DB_OUT/data" "$DATA_OUT"
 warn_noise
 CPUS=$(physical_first_cpus "$PRIMARY_CPU")
 
@@ -67,7 +68,7 @@ handler_name() {
 
 if [[ ,$ONLY, == *,throughput,* ]]; then
     file=$(decompressed "$THROUGHPUT_FILE")
-    CSV=$DB_OUT/combos_throughput.csv
+    CSV=$DATA_OUT/combos_throughput.csv
     echo "file,book,handler,run,msgs_per_sec" > "$CSV"
     combos=()
     for book in "${BOOKS[@]}"; do
@@ -92,7 +93,7 @@ fi
 
 if [[ ,$ONLY, == *,latency,* ]]; then
     file=$(decompressed "$LATENCY_FILE")
-    CSV=$DB_OUT/combos_latency.csv
+    CSV=$DATA_OUT/combos_latency.csv
     rm -f "$CSV" "$CSV.cdf"
     for book in "${BOOKS[@]}"; do
         for handoff in mutex-cv locked-ring ring-yield ring-spin ring sequenced; do
@@ -101,4 +102,4 @@ if [[ ,$ONLY, == *,latency,* ]]; then
         done
     done
 fi
-note "results in $DB_OUT"
+note "results in $DATA_OUT"

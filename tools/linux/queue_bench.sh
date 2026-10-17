@@ -10,7 +10,7 @@ Runs queue_bench with the producer and consumer pinned three ways:
   unpinned    the scheduler decides
   cross_core  two physical cores  (PRIMARY_CPU and CROSS_CPU)
   smt         two hyperthreads of one core  (PRIMARY_CPU and SMT_CPU)
-Writes to \$OUT (default benchmarks/linux):
+Writes to \$OUT/reference (default benchmarks/linux/reference):
   queue_buffers.csv     ring buffer variants: flat out and paced latency
   queue_idle.csv        idle strategies (mutex, yield, spin, back-off): flat out
   queue_idle_latency.csv  idle strategies: paced latency
@@ -58,8 +58,9 @@ setup_cpus
 [[ -n $SMT_CPU ]] || note "cpu$PRIMARY_CPU has no SMT sibling, the smt placement will be skipped"
 build_release queue_bench
 BENCH=$RELEASE_BIN/queue_bench
-mkdir -p "$OUT"
-machine_info > "$OUT/queue_env.txt"
+DATA_OUT=$OUT/reference
+mkdir -p "$DATA_OUT"
+machine_info > "$DATA_OUT/queue_env.txt"
 warn_noise
 
 cpus_for() {
@@ -83,7 +84,7 @@ IFS=, read -r -a placement_list <<< "$PLACEMENTS"
 IFS=, read -r -a latency_placement_list <<< "$LATENCY_PLACEMENTS"
 IFS=, read -r -a rate_list <<< "$RATES"
 
-BUFFERS_CSV=$OUT/queue_buffers.csv
+BUFFERS_CSV=$DATA_OUT/queue_buffers.csv
 echo "placement,bench,impl,scenario,run,throughput_mps,p50_ns,p99_ns,p999_ns,consumer_cpu_pct" > "$BUFFERS_CSV"
 for placement in "${placement_list[@]}"; do
     placement_ok "$placement" || continue
@@ -91,8 +92,8 @@ for placement in "${placement_list[@]}"; do
     LOB_CPUS=$(cpus_for "$placement") "$BENCH" variants "$RUNS" | prefix_rows "$placement" >> "$BUFFERS_CSV"
 done
 
-IDLE_CSV=$OUT/queue_idle.csv
-IDLE_LATENCY_CSV=$OUT/queue_idle_latency.csv
+IDLE_CSV=$DATA_OUT/queue_idle.csv
+IDLE_LATENCY_CSV=$DATA_OUT/queue_idle_latency.csv
 echo "placement,bench,impl,size,run,ms" > "$IDLE_CSV"
 echo "placement,bench,impl,rate,run,p50_ns,p99_ns,p999_ns,max_ns,consumer_cpu_pct" > "$IDLE_LATENCY_CSV"
 for placement in "${latency_placement_list[@]}"; do
@@ -106,7 +107,7 @@ for placement in "${latency_placement_list[@]}"; do
     done
 done
 
-PERF_CSV=$OUT/queue_perf.csv
+PERF_CSV=$DATA_OUT/queue_perf.csv
 echo "placement,impl,items,event,value,counted_pct" > "$PERF_CSV"
 if perf_usable; then
     for placement in cross_core smt; do
@@ -128,8 +129,8 @@ if ((C2C)); then
         note "perf c2c: $impl"
         data=$(mktemp)
         if LOB_CPUS=$(cpus_for cross_core) perf c2c record -o "$data" -- "$BENCH" one "$impl" "$ITEMS" > /dev/null 2>&1; then
-            perf c2c report -i "$data" --stdio --stats > "$OUT/queue_c2c_$impl.txt" 2> /dev/null || true
-            perf c2c report -i "$data" --stdio -N 2> /dev/null | head -n 120 >> "$OUT/queue_c2c_$impl.txt" || true
+            perf c2c report -i "$data" --stdio --stats > "$DATA_OUT/queue_c2c_$impl.txt" 2> /dev/null || true
+            perf c2c report -i "$data" --stdio -N 2> /dev/null | head -n 120 >> "$DATA_OUT/queue_c2c_$impl.txt" || true
         else
             note "perf c2c record failed (needs perf_event_paranoid <= 1 and load-latency events; try with sudo)"
         fi
@@ -140,11 +141,11 @@ fi
 if ((FANOUT)); then
     note "fanout: 1 producer, 1/2/4 consumers"
     all_cpus=$(physical_first_cpus "$PRIMARY_CPU")
-    echo "bench,impl,consumers,run,mps" > "$OUT/queue_fanout.csv"
-    LOB_CPUS=$all_cpus "$BENCH" fanout 10000000 "$RUNS" >> "$OUT/queue_fanout.csv"
+    echo "bench,impl,consumers,run,mps" > "$DATA_OUT/queue_fanout.csv"
+    LOB_CPUS=$all_cpus "$BENCH" fanout 10000000 "$RUNS" >> "$DATA_OUT/queue_fanout.csv"
 fi
 
 if ((PLOT)); then
-    "$PYTHON" "$ROOT/tools/plot_linux_bench.py" queue "$OUT"
+    "$PYTHON" "$ROOT/tools/plot_linux_bench.py" queue "$DATA_OUT"
 fi
-note "results in $OUT"
+note "results in $DATA_OUT"

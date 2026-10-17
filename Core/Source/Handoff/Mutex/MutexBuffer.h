@@ -7,7 +7,7 @@
 #include <optional>
 #include <utility>
 
-#include "CircularBuffer.h"
+#include "Handoff/BufferTraits.h"
 
 template <Usable T, std::size_t Capacity>
 class MutexBuffer {

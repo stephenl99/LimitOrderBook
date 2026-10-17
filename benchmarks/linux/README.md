@@ -4,7 +4,7 @@ Book data structures and producer/consumer queues, measured on Linux with thread
 timer and (once enabled) `perf` hardware counters.
 
 - Machine: ThinkPad X1 Carbon Gen 8, Intel i7-10510U (4 cores / 8 threads, Comet Lake), kernel 7.0, g++ 15.2, `-O2 -g`
-  (`RelWithDebInfo`). Full state in [`book_env.txt`](book_env.txt) and [`queue_env.txt`](queue_env.txt).
+  (`RelWithDebInfo`). Full state in [`book_env.txt`](reference/book_env.txt) and [`queue_env.txt`](reference/queue_env.txt).
 - Governor `powersave`, turbo on, laptop. Book gaps below are large and stable across runs. Absolute queue throughput
   moved up to 2x between sessions, so trust the queue *rankings* more than the queue *numbers*.
 - `perf_event_paranoid` was 4 on this run, so hardware counters were skipped. Everything else here was measured.
@@ -32,7 +32,7 @@ tools/linux/databento_report.sh      # every step below + images, ~45 min; --onl
 | mode | what it is |
 |---|---|
 | single thread | `DatabentoSession::apply` on the reading thread, no queue |
-| mutex + condvar | `Baseline/MutexPipeline.h`: `std::queue`, lock + `notify_one` per message, consumer sleeps on the condvar (same design as `ItchMutexDecoder`) |
+| mutex + condvar | `Handoff/Mutex/MutexPipeline.h`: `std::queue`, lock + `notify_one` per message, consumer sleeps on the condvar (same design as `ItchMutexDecoder`) |
 | locked ring | fixed ring guarded by a mutex (`Core/MutexBuffer.h`), consumer polls with back-off |
 | ring | lock-free SPSC `CircularBuffer` with cached counters; consumer waits by yield, spin or back-off |
 | sequence ring | `SequencedBuffer`, a sequence number per slot, back-off |
@@ -105,7 +105,7 @@ ns per record, book only (`databento_replay ... variants all`, 15 passes): `pool
 
 `tools/linux/databento_combos.sh`: 7 books (all with a 64-slot instrument cache) x 9 handlers. Throughput is flat out
 on the decompressed `cme_mix` (5 alternating runs); latency is paced at 60x on `esz6`, batch 64. Full ranked tables in
-[`databento/combos_ranking.md`](databento/combos_ranking.md). This matrix ran in one later session where the machine
+[`databento/reference/combos_ranking.md`](databento/reference/combos_ranking.md). This matrix ran in one later session where the machine
 was about 20% slower overall than the earlier runs, so compare within it, not against the numbers above.
 
 ![combo throughput](databento/images/15_combo_throughput.png)
@@ -214,13 +214,13 @@ Median ns per operation over 5 runs (lower is better). Each run is its own proce
 | `pooled-hybrid` | 48 | 42 | 46 | 41 | 55 | 55 | 115 | 53 |
 | `pooled-ladder` | **45** | **39** | **41** | **41** | **46** | **48** | 116 | **49** |
 
-![book heatmap](book_heatmap.png)
+![book heatmap](reference/book_heatmap.png)
 
-Per-scenario bars: [equity](book_equity.png) · [thin](book_thin.png) · [deep](book_deep.png) ·
-[volatile](book_volatile.png) · [wide](book_wide.png) · [cme6](book_cme6.png) · [multi](book_multi.png) ·
-[random_ids](book_random_ids.png)
+Per-scenario bars: [equity](reference/book_equity.png) · [thin](reference/book_thin.png) · [deep](reference/book_deep.png) ·
+[volatile](reference/book_volatile.png) · [wide](reference/book_wide.png) · [cme6](reference/book_cme6.png) · [multi](reference/book_multi.png) ·
+[random_ids](reference/book_random_ids.png)
 
-![equity](book_equity.png)
+![equity](reference/book_equity.png)
 
 ### Latency per operation
 
@@ -247,12 +247,12 @@ Cycle counter around every operation, including `book_for` and the BBO read. ns,
 | `ladder-identity` | 66 | 304 | **2,493** | **20,221** |
 | `pooled-ladder` | 70 | 148 | 309 | 470 |
 
-![latency, equity](book_latency_equity.png)
-![latency, deep](book_latency_deep.png)
+![latency, equity](reference/book_latency_equity.png)
+![latency, deep](reference/book_latency_deep.png)
 
 ### Instrument cache
 
-![routing](book_routing.png)
+![routing](reference/book_routing.png)
 
 ### What the book numbers say
 
@@ -297,7 +297,7 @@ Every test runs three ways:
 | ring, per-slot sequence (`SequencedBuffer`) | 218 | **331** | 162 |
 | Vyukov MPMC | 56 | 56 | 47 |
 
-![buffers](queue_buffers.png)
+![buffers](reference/queue_buffers.png)
 
 ### Buffers, paced (p50 / p99 ns)
 
@@ -308,7 +308,7 @@ Every test runs three ways:
 | ring, per-slot sequence | 189 / 8,157 | 81 / 169 | 154 / 6,623 | 73 / 115 |
 | Vyukov MPMC | 192 / 7,032 | 93 / 168 | 159 / 640 | 80 / 115 |
 
-![buffer latency](queue_buffers_latency.png)
+![buffer latency](reference/queue_buffers_latency.png)
 
 ### Idle strategies (on the cached-counter ring; mutex for reference)
 
@@ -319,7 +319,7 @@ Every test runs three ways:
 | spin | 86 / 298 | **196 / 574** | **140 / 216** | 100% |
 | back-off (`BalancedBackoff`) | 88 / 239 | 412 / 1,381 | 137 / 212 | 100% |
 
-![idle strategies](queue_idle.png)
+![idle strategies](reference/queue_idle.png)
 
 ### One producer, N consumers (M items/s)
 
@@ -349,7 +349,7 @@ Every test runs three ways:
 All of these pass items from a producer thread to a consumer thread. What separates them is how often a cache line
 has to move between the two cores: roughly 50–100 ns per move across cores here, much less between hyperthreads.
 
-### 1. Mutex + condition variable (`MutexQueue`, `Baseline/MutexDecoder`)
+### 1. Mutex + condition variable (`MutexQueue`, `Core/ItchMutexDecoder`)
 A `std::queue` behind a `std::mutex`. Push takes the lock, pushes, then calls `notify_one`. Pop sleeps on the
 condition variable until something arrives.
 - **Good:** it's the only queue that truly sleeps when idle (3% CPU at 10k/s versus 100% for every ring). It's
@@ -397,7 +397,7 @@ compare-and-swap.
   also wrong for a book: two consumers could apply messages for one instrument out of order. That's why
   `ItchShardedDecoder` routes by instrument through separate SPSC rings instead.
 
-### Idle strategies (`Core/Source/Core/IdleStrategy.h`)
+### Idle strategies (`Core/Source/Handoff/IdleStrategy.h`)
 What a side does when the ring is empty or full. This matters as much as the queue:
 
 | strategy | how it waits | effect |
@@ -598,7 +598,7 @@ switches per million, and draws `book_perf.png` / `queue_perf.png`.
 ### `perf c2c` (`queue_bench.sh --c2c`)
 `perf c2c record` samples memory loads with their addresses. `perf c2c report` then lists the specific cache lines
 with the most cross-core traffic and the code that touches them. This is how to find false sharing like the
-`DatabentoSession::records_` problem in `benchmarks/README.md` without reasoning about byte offsets by hand. It usually
+`DatabentoSession::records_` problem in `benchmarks/reference/README.md` without reasoning about byte offsets by hand. It usually
 needs root.
 
 ### Per-op latency (`CycleClock` in `BookBench.cpp`)
@@ -660,12 +660,12 @@ The shell scripts depend on `/sys` and `perf`, so they are Linux-only.
 
 | file | contents |
 |---|---|
-| [`book_throughput.csv`](book_throughput.csv) | scenario, impl, levels, index, orders, cache, run, ops, ms, mops, ns_per_op, teardown_ms, checksum |
-| [`book_latency.csv`](book_latency.csv) | per scenario x impl x op type: count, p50/p90/p99/p99.9/max/mean ns |
-| [`book_perf.csv`](book_perf.csv) | perf counters per scenario x impl (empty on this run) |
-| [`book_summary.md`](book_summary.md) | median tables |
-| [`queue_buffers.csv`](queue_buffers.csv) | placement x buffer: flat-out M/s and paced p50/p99/p99.9/CPU |
-| [`queue_idle.csv`](queue_idle.csv), [`queue_idle_latency.csv`](queue_idle_latency.csv) | idle strategies by placement |
-| [`queue_fanout.csv`](queue_fanout.csv) | 1 producer → N consumers |
-| [`queue_perf.csv`](queue_perf.csv) | perf counters per placement x buffer (empty on this run) |
-| [`queue_summary.md`](queue_summary.md) | median tables |
+| [`book_throughput.csv`](reference/book_throughput.csv) | scenario, impl, levels, index, orders, cache, run, ops, ms, mops, ns_per_op, teardown_ms, checksum |
+| [`book_latency.csv`](reference/book_latency.csv) | per scenario x impl x op type: count, p50/p90/p99/p99.9/max/mean ns |
+| [`book_perf.csv`](reference/book_perf.csv) | perf counters per scenario x impl (empty on this run) |
+| [`book_summary.md`](reference/book_summary.md) | median tables |
+| [`queue_buffers.csv`](reference/queue_buffers.csv) | placement x buffer: flat-out M/s and paced p50/p99/p99.9/CPU |
+| [`queue_idle.csv`](reference/queue_idle.csv), [`queue_idle_latency.csv`](reference/queue_idle_latency.csv) | idle strategies by placement |
+| [`queue_fanout.csv`](reference/queue_fanout.csv) | 1 producer → N consumers |
+| [`queue_perf.csv`](reference/queue_perf.csv) | perf counters per placement x buffer (empty on this run) |
+| [`queue_summary.md`](reference/queue_summary.md) | median tables |

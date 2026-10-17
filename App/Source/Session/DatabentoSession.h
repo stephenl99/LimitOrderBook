@@ -17,11 +17,11 @@
 #include <vector>
 
 #include "Book/OuterBook/OuterBook.h"
-#include "Baseline/MutexPipeline.h"
-#include "Core/MessagePipeline.h"
-#include "Core/MutexBuffer.h"
-#include "Core/SequencedBuffer.h"
 #include "Core/ThreadPinning.h"
+#include "Handoff/MessagePipeline.h"
+#include "Handoff/Mutex/MutexBuffer.h"
+#include "Handoff/Mutex/MutexPipeline.h"
+#include "Handoff/Sequenced/SequencedBuffer.h"
 #include "Message/Databento/HandleMessage.h"
 
 enum class Threading {
