@@ -5,10 +5,10 @@ works): [`benchmarks/linux/README.md`](../linux/README.md).
 
 Comparing ways to hand messages from the parser thread to the handler thread:
 
-- **mutex + condvar** — the original, `std::queue` behind a mutex. Kept in `Core/Source/Core/ItchMutexDecoder.cpp`.
+- **mutex + condvar** — the original, `std::queue` behind a mutex. Kept in `Core/Source/Core/Decoder/ItchMutexDecoder.cpp`.
 - **ring, yield when idle** — the lock-free SPSC ring in `Core/Source/Handoff/Ring/CircularBuffer.h`, calling `std::this_thread::yield()` when full/empty. This is what `Decoder` uses.
 - **ring, spin when idle** — same ring, CPU pause instruction instead of `yield()`.
-- **single thread** — no queue at all (`Core/Source/Core/ItchSingleThreadDecoder.cpp`). Only in the decode test.
+- **single thread** — no queue at all (`Core/Source/Core/Decoder/ItchSingleThreadDecoder.cpp`). Only in the decode test.
 
 File mapping, framing, `itch::decode_message`, `itch::handle_message` and the book are shared, so the handoff is the only difference.
 

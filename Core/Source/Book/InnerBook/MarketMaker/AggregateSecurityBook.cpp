@@ -18,12 +18,6 @@ void AggregateSecurityBook<Levels, Orders>::remove_resting(typename Orders::Hand
 }
 
 template <typename Levels, typename Orders>
-void AggregateSecurityBook<Levels, Orders>::insert(const Order& order)
-{
-    add_resting(order.order_reference_number(), order.side(), order.price(), order.quantity());
-}
-
-template <typename Levels, typename Orders>
 void AggregateSecurityBook<Levels, Orders>::delete_order(uint64_t order_reference_number)
 {
     const auto handle = orders_.find(order_reference_number);

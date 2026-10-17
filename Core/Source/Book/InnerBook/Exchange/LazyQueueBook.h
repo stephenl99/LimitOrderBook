@@ -195,11 +195,6 @@ public:
         }
     }
 
-    void insert(const Order& order)
-    {
-        add_resting(order.order_reference_number(), order.side(), order.price(), order.quantity());
-    }
-
     void add_order(uint64_t id, Side side, Price price, uint32_t quantity) { add_resting(id, side, price, quantity); }
 
     void delete_order(uint64_t id)

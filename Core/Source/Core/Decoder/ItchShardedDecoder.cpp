@@ -1,9 +1,9 @@
-#include "ItchShardedDecoder.h"
+#include "Core/Decoder/ItchShardedDecoder.h"
 
 #include <thread>
 #include <vector>
 
-#include "MappedFile.h"
+#include "Core/MappedFile.h"
 #include "Handoff/MessagePipeline.h"
 #include "Message/Itch/DecodeMessage.h"
 #include "Message/Itch/FrameReader.h"

@@ -15,17 +15,8 @@ void handle_message(const MboMessage& mbo, BookType* book)
     switch (mbo.action()) {
     case Action::Add: {
         auto& security_book = book->book_for(mbo.instrument_id());
-        if constexpr (requires { security_book.add_order(uint64_t{}, ::Side::BID, Price{}, uint32_t{}); }) {
-            security_book.add_order(mbo.order_id(), mbo.side() == Side::Bid ? ::Side::BID : ::Side::ASK,
-                                    mbo.raw_price(), mbo.size());
-        } else {
-            security_book.insert(Order(mbo.timestamp_ns(),
-                                       mbo.instrument_id(),
-                                       mbo.order_id(),
-                                       static_cast<char>(mbo.side()),
-                                       mbo.raw_price(),
-                                       mbo.size()));
-        }
+        security_book.add_order(mbo.order_id(), mbo.side() == Side::Bid ? ::Side::BID : ::Side::ASK, mbo.raw_price(),
+                                mbo.size());
         break;
     }
     case Action::Cancel:

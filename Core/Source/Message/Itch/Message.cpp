@@ -1,5 +1,19 @@
 #include "Message/Itch/Message.h"
 
+namespace {
+
+template <typename R>
+R read_big_endian(std::span<const uint8_t> data, size_t offset, size_t size)
+{
+    R value = 0;
+    for (size_t i = 0; i < size; ++i) {
+        value = (value << 8) | static_cast<R>(data[offset + i]);
+    }
+    return value;
+}
+
+}  // namespace
+
 namespace itch {
 
 bool Message::decode_header(std::span<const uint8_t> data, size_t min_size, char expected_type)
@@ -16,26 +30,22 @@ bool Message::decode_header(std::span<const uint8_t> data, size_t min_size, char
 
 uint16_t Message::read_u16(std::span<const uint8_t> data, size_t offset)
 {
-    return Helpers::convert<uint16_t, uint8_t>(
-        const_cast<uint8_t*>(data.data() + offset), 2);
+    return read_big_endian<uint16_t>(data, offset, 2);
 }
 
 uint32_t Message::read_u32(std::span<const uint8_t> data, size_t offset)
 {
-    return Helpers::convert<uint32_t, uint8_t>(
-        const_cast<uint8_t*>(data.data() + offset), 4);
+    return read_big_endian<uint32_t>(data, offset, 4);
 }
 
 uint64_t Message::read_u64(std::span<const uint8_t> data, size_t offset)
 {
-    return Helpers::convert<uint64_t, uint8_t>(
-        const_cast<uint8_t*>(data.data() + offset), 8);
+    return read_big_endian<uint64_t>(data, offset, 8);
 }
 
 uint64_t Message::read_timestamp_ns(std::span<const uint8_t> data, size_t offset)
 {
-    return Helpers::convert<uint64_t, uint8_t>(
-        const_cast<uint8_t*>(data.data() + offset), 6);
+    return read_big_endian<uint64_t>(data, offset, 6);
 }
 
 }  // namespace itch

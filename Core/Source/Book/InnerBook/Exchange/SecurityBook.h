@@ -56,12 +56,7 @@ public:
     BidLevels bid_levels;
     AskLevels ask_levels;
     std::pmr::unordered_map<uint64_t, OrderIterator> order_mapping{&pool_};
-    void insert(const Order& order);
-
-    void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity)
-    {
-        insert(Order(0, stock_locate_, order_reference_number, side == Side::BID ? 'B' : 'S', price, quantity));
-    }
+    void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity);
 
     void delete_order(uint64_t order_reference_number);
 

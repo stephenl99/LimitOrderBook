@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Core/ItchDecoder.h"
+#include "Core/Decoder/ItchDecoder.h"
 #include "Core/Logger.h"
 
 namespace {

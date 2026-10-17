@@ -333,11 +333,6 @@ public:
         index_.insert(ref, slot);
     }
 
-    void insert(const Order& order)
-    {
-        add_order(order.order_reference_number(), order.side(), order.price(), order.quantity());
-    }
-
     void execute_order(std::uint64_t ref, std::uint32_t quantity) { reduce(ref, quantity); }
     void cancel_order(std::uint64_t ref, std::uint32_t quantity) { reduce(ref, quantity); }
 

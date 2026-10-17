@@ -6,8 +6,10 @@
 #include <optional>
 #include <vector>
 
-#include "AggregateLevels.h"
 #include "Book/InnerBook/LevelSummary.h"
+#include "Book/InnerBook/MarketMaker/Levels/MapLevels.h"
+#include "Book/InnerBook/MarketMaker/Levels/PriceLadder.h"
+#include "Book/InnerBook/MarketMaker/Levels/SortedLevels.h"
 #include "Book/InnerBook/Order.h"
 #include "OrderIndex.h"
 
@@ -50,7 +52,6 @@ public:
         ask_levels_.set_tick(tick);
     }
 
-    void insert(const Order& order);
     void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity)
     {
         add_resting(order_reference_number, side, price, quantity);

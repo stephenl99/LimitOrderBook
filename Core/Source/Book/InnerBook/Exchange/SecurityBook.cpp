@@ -68,15 +68,13 @@ void BasicSecurityBook<Levels>::erase_level_if_empty(const Level& level, Side si
 }
 
 template <typename Levels>
-void BasicSecurityBook<Levels>::insert(const Order& order)
+void BasicSecurityBook<Levels>::add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity)
 {
-    const Price price = order.price();
-    const uint64_t ref = order.order_reference_number();
-    const Side side = order.side();
-
     Level& level = level_for(side, price);
-    const auto it = level.orders.insert(level.orders.end(), order);
-    order_mapping.emplace(ref, OrderIterator(level, it, price, side));
+    const auto it = level.orders.insert(
+        level.orders.end(),
+        Order(0, stock_locate_, order_reference_number, side == Side::BID ? 'B' : 'S', price, quantity));
+    order_mapping.emplace(order_reference_number, OrderIterator(level, it, price, side));
 }
 
 template <typename Levels>
@@ -161,19 +159,9 @@ void BasicSecurityBook<Levels>::replace_order(uint64_t old_order_reference_numbe
         return;
     }
 
-    const Order& old_order = *map_it->second.it;
-    const InstrumentId temp_stock_locate = old_order.stock_locate();
-    const uint64_t timestamp_ns = old_order.timestamp_ns();
-    const char side = (old_order.side() == Side::BID) ? 'B' : 'S';
-
+    const Side side = map_it->second.it->side();
     remove_order(old_order_reference_number);
-
-    insert(Order(timestamp_ns,
-                 temp_stock_locate,
-                 new_order_reference_number,
-                 side,
-                 new_price,
-                 new_shares));
+    add_order(new_order_reference_number, side, new_price, new_shares);
 }
 
 template <typename Levels>

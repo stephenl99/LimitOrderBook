@@ -2,9 +2,9 @@
 #include "BookVariants/OrderFlow.h"
 #include "Book/OuterBook/ItchBook.h"
 #include "Book/OuterBook/OuterBook.h"
-#include "Core/ItchSingleThreadDecoder.h"
-#include "Core/ItchDecoder.h"
-#include "Core/ItchShardedDecoder.h"
+#include "Core/Decoder/ItchSingleThreadDecoder.h"
+#include "Core/Decoder/ItchDecoder.h"
+#include "Core/Decoder/ItchShardedDecoder.h"
 #include "Book/OuterBook/ItchSecurityDirectory.h"
 #include "Message/Itch/AddOrderMessage.h"
 #include "Message/Itch/DecodeMessage.h"
@@ -95,9 +95,9 @@ std::optional<SecurityBook*> find_security_book(const Book& books, uint16_t stoc
     return books.find(stock_locate);
 }
 
-void insert_order(SecurityBook& book, Order order)
+void insert_order(SecurityBook& book, const Order& order)
 {
-    book.insert(order);
+    book.add_order(order.order_reference_number(), order.side(), order.price(), order.quantity());
 }
 
 }  // namespace
@@ -213,7 +213,7 @@ TEST(DecodeMessage, ExecutedWithPricePayload)
 TEST(Book, InsertAddCreatesBidLevel)
 {
     Order order(1'000'000'000ull, 1u, 12345ull, 'B', 1'500'000u, 100u);
-    SecurityBook book;
+    SecurityBook book(1);
     insert_order(book, order);
     EXPECT_EQ(book.bid_levels.size(), 1u);
     EXPECT_EQ(book.ask_levels.size(), 0u);
@@ -466,9 +466,9 @@ void expect_matches_tree_book(int compare_queues_every)
             const Price ticks = static_cast<Price>(random() % 60);
             const Price price = side == 'B' ? kBestBid - ticks * kTick : kBestAsk + ticks * kTick;
             const auto quantity = static_cast<uint32_t>(1 + random() % 500);
-            const Order order(step, 1, next_id, side, price, quantity);
-            tree.insert(order);
-            candidate.insert(order);
+            const Side book_side = side == 'B' ? Side::BID : Side::ASK;
+            tree.add_order(next_id, book_side, price, quantity);
+            candidate.add_order(next_id, book_side, price, quantity);
             live.push_back(next_id++);
         } else {
             const std::size_t pick = random() % live.size();

@@ -20,10 +20,10 @@
 #endif
 
 
-#include "Core/ItchDecoder.h"
-#include "Core/ItchMutexDecoder.h"
-#include "Core/ItchShardedDecoder.h"
-#include "Core/ItchSingleThreadDecoder.h"
+#include "Core/Decoder/ItchDecoder.h"
+#include "Core/Decoder/ItchMutexDecoder.h"
+#include "Core/Decoder/ItchShardedDecoder.h"
+#include "Core/Decoder/ItchSingleThreadDecoder.h"
 #include "Core/MappedFile.h"
 #include "Core/ThreadPinning.h"
 #include "Handoff/IdleStrategy.h"

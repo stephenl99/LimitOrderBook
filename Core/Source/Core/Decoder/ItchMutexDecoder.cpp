@@ -1,4 +1,4 @@
-#include "Core/ItchMutexDecoder.h"
+#include "Core/Decoder/ItchMutexDecoder.h"
 
 #include <condition_variable>
 #include <mutex>

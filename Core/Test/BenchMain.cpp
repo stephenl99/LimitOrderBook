@@ -1,5 +1,5 @@
 #include "Book/OuterBook/ItchBook.h"
-#include "Core/ItchDecoder.h"
+#include "Core/Decoder/ItchDecoder.h"
 
 #include <chrono>
 #include <cstdint>

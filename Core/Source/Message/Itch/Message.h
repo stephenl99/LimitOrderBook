@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <span>
 
-#include "Core/Helpers.h"
 #include "Message/MarketMessage.h"
 
 namespace itch {
