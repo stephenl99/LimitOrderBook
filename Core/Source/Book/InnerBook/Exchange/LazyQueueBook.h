@@ -195,7 +195,13 @@ public:
         }
     }
 
-    void add_order(uint64_t id, Side side, Price price, uint32_t quantity) { add_resting(id, side, price, quantity); }
+    void add_order(uint64_t id, Side side, Price price, uint32_t quantity)
+    {
+        on_side(side, [&](auto& levels) { levels.add(price, quantity); });
+        const uint64_t sequence = ++next_sequence_;
+        orders_.insert(id, RestingOrder{price, sequence, quantity, side});
+        enqueue(side, price, sequence, id);
+    }
 
     void delete_order(uint64_t id)
     {
@@ -215,7 +221,7 @@ public:
         }
         const Side side = orders_.get(handle).side;
         remove_resting(handle);
-        add_resting(new_id, side, price, quantity);
+        add_order(new_id, side, price, quantity);
     }
 
     void modify_order(uint64_t id, Price new_price, uint32_t new_shares)
@@ -366,14 +372,6 @@ private:
             ++queue->head;
         }
         return {typename Orders::Handle{}, 0};
-    }
-
-    void add_resting(uint64_t id, Side side, Price price, uint32_t quantity)
-    {
-        on_side(side, [&](auto& levels) { levels.add(price, quantity); });
-        const uint64_t sequence = ++next_sequence_;
-        orders_.insert(id, RestingOrder{price, sequence, quantity, side});
-        enqueue(side, price, sequence, id);
     }
 
     void remove_resting(typename Orders::Handle handle)

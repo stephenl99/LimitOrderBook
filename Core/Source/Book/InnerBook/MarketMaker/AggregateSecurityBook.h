@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Book/InnerBook/LevelSummary.h"
+#include "Book/InnerBook/MarketMaker/AggregateConcepts.h"
 #include "Book/InnerBook/MarketMaker/Levels/MapLevels.h"
 #include "Book/InnerBook/MarketMaker/Levels/PriceLadder.h"
 #include "Book/InnerBook/MarketMaker/Levels/SortedLevels.h"
@@ -32,11 +33,11 @@ struct LadderLevels {
     using Side = PriceLadder<Better>;
 };
 
-template <typename Levels, typename Orders>
+template <LevelPolicy Levels, OrderIndex Orders>
 class AggregateSecurityBook {
 public:
-    using BidLevels = typename Levels::template Side<std::greater<>>;
-    using AskLevels = typename Levels::template Side<std::less<>>;
+    using BidLevels = BidSide<Levels>;
+    using AskLevels = AskSide<Levels>;
 
     explicit AggregateSecurityBook(InstrumentId stock_locate = 0) : stock_locate_(stock_locate) {}
 
@@ -52,10 +53,7 @@ public:
         ask_levels_.set_tick(tick);
     }
 
-    void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity)
-    {
-        add_resting(order_reference_number, side, price, quantity);
-    }
+    void add_order(uint64_t order_reference_number, Side side, Price price, uint32_t quantity);
     void delete_order(uint64_t order_reference_number);
     void execute_order(uint64_t order_reference_number, uint32_t executed_shares);
     void cancel_order(uint64_t order_reference_number, uint32_t cancelled_shares);
@@ -91,7 +89,6 @@ private:
         }
     }
 
-    void add_resting(uint64_t id, Side side, Price price, uint32_t quantity);
     void remove_resting(typename Orders::Handle handle);
     void reduce_order_quantity(uint64_t id, uint32_t shares, const char* action);
 
