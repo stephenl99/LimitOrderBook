@@ -3,7 +3,6 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <vector>
 
@@ -23,15 +22,6 @@ concept LevelSide = std::default_initializable<T> &&
                         { view.best() } -> std::same_as<std::optional<Price>>;
                         { view.depth(levels) } -> std::same_as<std::vector<LevelSummary>>;
                     };
-
-template <typename Levels>
-using BidSide = typename Levels::template Side<std::greater<>>;
-
-template <typename Levels>
-using AskSide = typename Levels::template Side<std::less<>>;
-
-template <typename Levels>
-concept LevelPolicy = LevelSide<BidSide<Levels>> && LevelSide<AskSide<Levels>>;
 
 template <typename Index>
 concept OrderIndex = requires(Index index, uint64_t id, RestingOrder order) {

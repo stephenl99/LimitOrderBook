@@ -123,12 +123,13 @@ class SortedSlots {
         Price price;
         std::uint32_t level;
     };
+    using Entries = std::vector<Entry>;
 
 public:
     template <std::invocable Make>
     std::uint32_t find_or_create(Price price, Make&& make)
     {
-        const auto [index, found] = locate_level<Better, 8>(entries_, price);
+        const auto [index, found] = locate_level<Better, 8, Entries>(entries_, price);
         if (found) {
             return entries_[index].level;
         }
@@ -139,7 +140,7 @@ public:
 
     void erase(Price price)
     {
-        const auto [index, found] = locate_level<Better, 8>(entries_, price);
+        const auto [index, found] = locate_level<Better, 8, Entries>(entries_, price);
         if (found) {
             entries_.erase(entries_.begin() + static_cast<std::ptrdiff_t>(index));
         }
@@ -147,7 +148,7 @@ public:
 
     std::uint32_t find(Price price) const
     {
-        const auto [index, found] = locate_level<Better, 8>(entries_, price);
+        const auto [index, found] = locate_level<Better, 8, Entries>(entries_, price);
         return found ? entries_[index].level : kNoSlot;
     }
 
@@ -168,7 +169,7 @@ public:
     }
 
 private:
-    std::vector<Entry> entries_;
+    Entries entries_;
 };
 
 template <typename Better>

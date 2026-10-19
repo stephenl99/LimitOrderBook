@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::add_order(uint64_t order_reference_number,
                                                       Side side,
                                                       Price price,
@@ -12,7 +12,7 @@ void AggregateSecurityBook<Levels, Orders>::add_order(uint64_t order_reference_n
     orders_.insert(order_reference_number, RestingOrder{price, ++next_sequence_, quantity, side});
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::remove_resting(typename Orders::Handle handle)
 {
     const RestingOrder& order = orders_.get(handle);
@@ -20,7 +20,7 @@ void AggregateSecurityBook<Levels, Orders>::remove_resting(typename Orders::Hand
     orders_.erase(handle);
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::delete_order(uint64_t order_reference_number)
 {
     const auto handle = orders_.find(order_reference_number);
@@ -32,7 +32,7 @@ void AggregateSecurityBook<Levels, Orders>::delete_order(uint64_t order_referenc
     remove_resting(handle);
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::reduce_order_quantity(uint64_t id, uint32_t shares, const char* action)
 {
     const auto handle = orders_.find(id);
@@ -59,19 +59,19 @@ void AggregateSecurityBook<Levels, Orders>::reduce_order_quantity(uint64_t id, u
     order.quantity = new_quantity;
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::execute_order(uint64_t order_reference_number, uint32_t executed_shares)
 {
     reduce_order_quantity(order_reference_number, executed_shares, "execute");
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::cancel_order(uint64_t order_reference_number, uint32_t cancelled_shares)
 {
     reduce_order_quantity(order_reference_number, cancelled_shares, "cancel");
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::replace_order(uint64_t old_order_reference_number,
                                                           uint64_t new_order_reference_number,
                                                           Price new_price,
@@ -88,7 +88,7 @@ void AggregateSecurityBook<Levels, Orders>::replace_order(uint64_t old_order_ref
     add_order(new_order_reference_number, side, new_price, new_shares);
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::modify_order(uint64_t order_reference_number, Price new_price, uint32_t new_shares)
 {
     const auto handle = orders_.find(order_reference_number);
@@ -124,7 +124,7 @@ void AggregateSecurityBook<Levels, Orders>::modify_order(uint64_t order_referenc
     order.sequence = ++next_sequence_;
 }
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 void AggregateSecurityBook<Levels, Orders>::clear()
 {
     orders_.clear();

@@ -15,11 +15,12 @@ class SortedLevels {
         uint32_t quantity;
         uint32_t orders;
     };
+    using Entries = std::vector<Entry>;
 
 public:
     void add(Price price, uint32_t quantity)
     {
-        const auto [index, found] = locate_level<Better, LinearProbes>(entries_, price);
+        const auto [index, found] = locate_level<Better, LinearProbes, Entries>(entries_, price);
         if (!found) {
             entries_.insert(entries_.begin() + static_cast<std::ptrdiff_t>(index), Entry{price, quantity, 1});
             return;
@@ -31,7 +32,7 @@ public:
 
     void remove(Price price, uint32_t quantity)
     {
-        const auto [index, found] = locate_level<Better, LinearProbes>(entries_, price);
+        const auto [index, found] = locate_level<Better, LinearProbes, Entries>(entries_, price);
         if (!found) {
             return;
         }
@@ -44,7 +45,7 @@ public:
 
     void adjust(Price price, int64_t quantity_change)
     {
-        const auto [index, found] = locate_level<Better, LinearProbes>(entries_, price);
+        const auto [index, found] = locate_level<Better, LinearProbes, Entries>(entries_, price);
         if (found) {
             Entry& entry = entries_[index];
             entry.quantity = static_cast<uint32_t>(static_cast<int64_t>(entry.quantity) + quantity_change);
@@ -73,5 +74,5 @@ public:
     }
 
 private:
-    std::vector<Entry> entries_;
+    Entries entries_;
 };

@@ -58,7 +58,7 @@ public:
 
     Level& level_at(Price price, std::pmr::memory_resource* memory)
     {
-        const auto [index, found] = locate_level<Better, LinearProbes>(entries_, price);
+        const auto [index, found] = locate_level<Better, LinearProbes, Entries>(entries_, price);
         if (found) {
             return *entries_[index].level;
         }
@@ -69,7 +69,7 @@ public:
 
     void erase(Price price)
     {
-        const auto [index, found] = locate_level<Better, LinearProbes>(entries_, price);
+        const auto [index, found] = locate_level<Better, LinearProbes, Entries>(entries_, price);
         if (!found) {
             return;
         }
@@ -77,7 +77,7 @@ public:
         entries_.erase(entries_.begin() + static_cast<std::ptrdiff_t>(index));
     }
 
-    bool contains(Price price) const { return locate_level<Better, LinearProbes>(entries_, price).found; }
+    bool contains(Price price) const { return locate_level<Better, LinearProbes, Entries>(entries_, price).found; }
 
     std::size_t size() const { return entries_.size(); }
     bool empty() const { return entries_.empty(); }

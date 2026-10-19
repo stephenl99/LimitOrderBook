@@ -33,11 +33,12 @@ struct LadderLevels {
     using Side = PriceLadder<Better>;
 };
 
-template <LevelPolicy Levels, OrderIndex Orders>
+template <typename Levels, OrderIndex Orders>
 class AggregateSecurityBook {
 public:
-    using BidLevels = BidSide<Levels>;
-    using AskLevels = AskSide<Levels>;
+    using BidLevels = typename Levels::template Side<std::greater<>>;
+    using AskLevels = typename Levels::template Side<std::less<>>;
+    static_assert(LevelSide<BidLevels> && LevelSide<AskLevels>);
 
     explicit AggregateSecurityBook(InstrumentId stock_locate = 0) : stock_locate_(stock_locate) {}
 
