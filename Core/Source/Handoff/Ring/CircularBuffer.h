@@ -31,6 +31,7 @@ public:
             }
         }
         slots_[tail & kMask] = std::move(value);
+        tail_.store(tail + 1, std::memory_order_release);
         return true;
     }
 
