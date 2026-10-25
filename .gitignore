@@ -85,3 +85,6 @@ cmake_test_discovery_*.json
 # Derived from licensed Databento data (decompressed copies and exported order flows)
 benchmarks/linux/databento/data/
 benchmarks/linux/databento/flows/
+
+# Per-run raw latency files from the final demo scripts (summaries are in the CSVs next to them)
+benchmarks/linux/databento/final-demo_data/runs/

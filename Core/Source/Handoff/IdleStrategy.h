@@ -1,9 +1,16 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <concepts>
 #include <cstdint>
+#include <cstdlib>
+#include <string>
 #include <thread>
+
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 inline void cpu_pause()
 {
@@ -66,3 +73,84 @@ using LowLatencyBackoff = BasicBackoff<16000, 20000>;
 using BalancedBackoff = BasicBackoff<256, 2000>;
 using LowCpuBackoff = BasicBackoff<0, 64>;
 using BackoffWhenIdle = BalancedBackoff;
+
+struct BackoffSchedule {
+    std::chrono::nanoseconds spin{500'000};
+    std::chrono::nanoseconds yield{0};
+    std::chrono::nanoseconds sleep{5'000};
+    std::chrono::nanoseconds timer_slack{1'000};
+};
+
+inline BackoffSchedule backoff_schedule_from_env()
+{
+    BackoffSchedule schedule;
+    const char* text = std::getenv("LOB_BACKOFF");
+    if (text == nullptr) {
+        return schedule;
+    }
+    std::chrono::nanoseconds* fields[] = {&schedule.spin, &schedule.yield, &schedule.sleep, &schedule.timer_slack};
+    const std::string list = text;
+    std::size_t start = 0;
+    for (std::chrono::nanoseconds* field : fields) {
+        if (start > list.size()) {
+            break;
+        }
+        const std::size_t end = std::min(list.find(',', start), list.size());
+        if (end > start) {
+            *field = std::chrono::nanoseconds{std::stoll(list.substr(start, end - start))};
+        }
+        start = end + 1;
+    }
+    return schedule;
+}
+
+inline const BackoffSchedule& backoff_schedule()
+{
+    static const BackoffSchedule schedule = backoff_schedule_from_env();
+    return schedule;
+}
+
+class TimedBackoff {
+public:
+    void wait()
+    {
+        const auto now = std::chrono::steady_clock::now();
+        if (!waiting_) {
+            waiting_ = true;
+            started_ = now;
+            apply_timer_slack();
+        }
+        const BackoffSchedule& schedule = backoff_schedule();
+        const auto idle = now - started_;
+        if (idle < schedule.spin) {
+            cpu_pause();
+        } else if (idle < schedule.spin + schedule.yield) {
+            std::this_thread::yield();
+        } else {
+            std::this_thread::sleep_for(schedule.sleep);
+        }
+    }
+
+    void reset()
+    {
+        if (waiting_) {
+            waiting_ = false;
+        }
+    }
+
+private:
+    static void apply_timer_slack()
+    {
+#ifdef __linux__
+        thread_local bool applied = false;
+        const auto slack = backoff_schedule().timer_slack;
+        if (!applied && slack.count() > 0) {
+            prctl(PR_SET_TIMERSLACK, static_cast<unsigned long>(slack.count()), 0, 0, 0);
+            applied = true;
+        }
+#endif
+    }
+
+    bool waiting_ = false;
+    std::chrono::steady_clock::time_point started_{};
+};

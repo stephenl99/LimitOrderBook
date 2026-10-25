@@ -9,9 +9,106 @@ timer and (once enabled) `perf` hardware counters.
   moved up to 2x between sessions, so trust the queue *rankings* more than the queue *numbers*.
 - `perf_event_paranoid` was 4 on this run, so hardware counters were skipped. Everything else here was measured.
 
-Contents: [Databento path](#databento-path) · [Synthetic book results](#synthetic-book-results-itch-shaped-flow) · [Queue results](#queue-results) · [How each queue works](#how-each-queue-works)
+Contents: [Final demo](#final-demo) · [Databento path](#databento-path) · [Synthetic book results](#synthetic-book-results-itch-shaped-flow) · [Queue results](#queue-results) · [How each queue works](#how-each-queue-works)
 · [Profiling with perf](#profiling-with-perf) · [Hyperthreads: same core or separate cores?](#hyperthreads-same-core-or-separate-cores)
 · [How the measurements work](#how-the-measurements-work) · [Reproducing](#reproducing) · [Raw data](#raw-data)
+
+---
+
+## Final demo
+
+Charts in [`databento/final-demo_images/`](databento/final-demo_images/), data in
+[`databento/final-demo_data/`](databento/final-demo_data/). `cme_mix` (six CME futures, one hour), `ladder-cached64`
+book, batch 64, producer and each consumer on its own physical core. Throughput flat out on the decompressed file
+(7 runs); latency push to apply, replay paced at 60x market time (3 runs, median); consumer CPU from perf
+(unhalted reference cycles / TSC per consumer core, cross-checked against `/proc/stat`).
+
+```
+tools/linux/databento_final_demo.sh          # sweep, throughput, latency (~1.5 h)
+tools/linux/databento_oversubscribed.sh      # more shard threads than cores (~25 min)
+python3 tools/plot_final_demo.py             # redraws all five charts
+```
+
+### Handoff designs
+
+![handoff comparison](databento/final-demo_images/01_handoff_comparison.png)
+
+| | direct call | mutex queue | SPSC ring (mutex) | SPSC ring (lock-free) | sharded SPSC rings |
+|---|---|---|---|---|---|
+| M msgs/s | 7.8 | 3.0 | 4.7 | **12.5** | 11.2 |
+| median latency | no handoff | 54 µs | 803 ns | 545 ns | **438 ns** |
+| consumer CPU | | 8% | 68% | 64% | 51% per consumer |
+
+Sharded is 2 shards (`instrument_id % 2`); 3 shards measured 10.8 M msgs/s and 496 ns.
+
+### Idle strategies, core to itself
+
+![idle strategies](databento/final-demo_images/02_idle_strategies.png)
+
+When nothing else wants the consumer's core, `yield()` returns immediately and behaves like spinning (385 ns, 98% CPU).
+Spin is fastest (287 ns). The tuned back-off (below) is 497 ns at 81%; the current `BalancedBackoff` 545 ns at 64%.
+
+### Idle strategies, sharing the core
+
+![shared core](databento/final-demo_images/03_idle_strategies_shared_core.png)
+
+A busy-loop process pinned to each consumer core, same priority, so `yield()` really hands the core away:
+
+| | median | p99 | CPU left for the neighbour |
+|---|---|---|---|
+| spin | 181 µs | 13 ms | 50% (time-sliced) |
+| yield | **1.55 ms** | 12 ms | 100% |
+| back-off (`BalancedBackoff`) | 1.56 ms | 14 ms | 99% |
+| tuned back-off | **5.7 µs** | 11 ms | 57% |
+
+`yield()` gives the neighbour a whole scheduler time slice (~1.5 ms) before the consumer runs again, and
+`BalancedBackoff` spends most of its idle time in 2000 yields, so it behaves the same. With the neighbour at `nice 19`:
+spin 304 ns but the neighbour gets 2% of the core; tuned back-off 534 ns and the neighbour keeps 33%; yield and
+back-off still ~1.5 ms.
+
+### Tuning the back-off
+
+![back-off tuning](databento/final-demo_images/04_backoff_tuning.png)
+
+`TimedBackoff` (`Core/Source/Handoff/IdleStrategy.h`, handoff `ring-tuned`) backs off by time instead of counts, so a
+schedule means the same on any CPU (`pause` costs ~140 cycles here, `isb` ~9 ns on the M2): spin for S, optionally yield
+for Y, then sleep in naps of N, with the thread's timer slack lowered to T (the kernel default of 50 µs turns a 20 µs nap
+into ~70 µs). Set with `LOB_BACKOFF=S,Y,N,T` in ns. Sweep on ESZ6 at 240x, 2 runs, full table in
+[`idle_sweep.md`](databento/final-demo_data/idle_sweep.md):
+
+- **The spin length sets the latency when the core is free** (500 µs of spin: 0.4 µs median) **and the CPU cost**.
+- **The nap length sets the latency when the core is shared** (5 µs naps: ~4.5 µs median whatever the spin).
+- **No yield stage.** Adding 200 µs of yields put the shared-core median back at 1.3 ms.
+- **Lower the timer slack.** 20 µs naps: 13 µs median with 1 µs slack, 37 µs with the default.
+- Tuned default: spin 500 µs, no yield, 5 µs naps, 1 µs slack. A low-CPU alternative is no spin + 5 µs naps:
+  5 µs median at 10% CPU with the core to itself.
+
+### When there are more threads than cores
+
+![oversubscribed](databento/final-demo_images/05_oversubscribed_shards.png)
+
+Sharded rings with the producer plus 3 or 6 consumers on 4 or 2 cores, so the threads compete with each other:
+
+| M msgs/s (median latency) | 3 shards, 4 cores | 6 shards, 4 cores | 6 shards, 2 cores |
+|---|---|---|---|
+| spin | 13.4 (231 ns) | 7.2 (3.3 µs) | 3.8 (502 µs) |
+| yield | **14.3** (420 ns) | **10.7** (1.6 µs) | **9.6** (3.8 µs) |
+| back-off | 13.1 (474 ns) | 10.6 (2.4 µs) | 9.5 (5.0 µs) |
+| tuned back-off | 13.4 (461 ns) | 6.4 (3.1 µs) | 3.4 (6.4 µs) |
+| mutex + condvar | 3.2 (54 µs) | 0.9 (43 µs) | 0.7 (14 µs) |
+
+Here the competitors are the pipeline's own threads, and yielding hands the core straight to one with work: yield and
+`BalancedBackoff` are best. Spinning (including the tuned back-off's 500 µs spin) burns slices the producer and the other
+shards need. Nap-only back-offs are no better: 6 consumers waking every 5 µs collapse to 1–2.5 M msgs/s on 2 cores.
+
+### Which idle strategy
+
+| the consumer's core is... | use | why |
+|---|---|---|
+| dedicated | spin, or tuned back-off to save ~20% CPU | lowest latency |
+| shared with unrelated work | tuned back-off (spin, then short naps, no yield) | yield waits a whole time slice for the core back |
+| shared with the pipeline's own threads (more shards than cores) | yield, or `BalancedBackoff` | yield passes the core to a thread that has work |
+| precious (power, many idle feeds) | nap-only back-off, or mutex + condvar | 10% / 5% CPU, at 5 µs / 54 µs latency |
 
 ---
 

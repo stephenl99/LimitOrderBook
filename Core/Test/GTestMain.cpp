@@ -897,6 +897,7 @@ TEST(MessagePipeline, EveryBufferDeliversEveryItemInOrder)
         expect_pipeline_delivers_in_order<MutexBuffer, BackoffWhenIdle>(batch);
         expect_pipeline_delivers_in_order<CircularBuffer, SpinWhenIdle>(batch);
         expect_pipeline_delivers_in_order<CircularBuffer, YieldWhenIdle>(batch);
+        expect_pipeline_delivers_in_order<CircularBuffer, TimedBackoff>(batch);
     }
 }
 
