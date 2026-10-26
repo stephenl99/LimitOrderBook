@@ -1,0 +1,1 @@
+exported 907454 book operations from 1054337 records, 6 instruments, peak resting 54202 to "/home/stephen-linder/Desktop/Projects/Personal Projects/LimitOrderBook/benchmarks/linux/databento/flows/cme_mix.flow"

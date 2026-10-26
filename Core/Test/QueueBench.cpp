@@ -864,7 +864,20 @@ int run_decode(const fs::path& path, int runs)
     return 0;
 }
 
-const std::array<std::string, 7> kOneImpls = {"mutex", "ring_yield", "ring_spin", "ring", "uncached_index",
+std::int64_t direct_call(std::int64_t items)
+{
+    pin_current_thread(static_cast<std::size_t>(ThreadRole::Producer));
+    std::int64_t sum = 0;
+    const auto consume = [&sum](std::int64_t value) { sum += value; };
+    for (std::int64_t i = 0; i < items; ++i) {
+        std::int64_t value = i;
+        asm volatile("" : "+r"(value));
+        consume(value);
+    }
+    return sum;
+}
+
+const std::array<std::string, 8> kOneImpls = {"direct", "mutex", "ring_yield", "ring_spin", "ring", "uncached_index",
                                               "sequenced", "mpmc"};
 
 int run_one(const std::string& impl, std::int64_t items)
@@ -872,7 +885,9 @@ int run_one(const std::string& impl, std::int64_t items)
     g_items = items;
     const auto start = Clock::now();
     std::int64_t sum = 0;
-    if (impl == "mutex") {
+    if (impl == "direct") {
+        sum = direct_call(items);
+    } else if (impl == "mutex") {
         sum = transfer<MutexQueue>(items);
     } else if (impl == "ring_yield") {
         sum = transfer<RingQueue<YieldWhenIdle>>(items);

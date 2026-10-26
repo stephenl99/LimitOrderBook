@@ -50,6 +50,7 @@ using DefaultHandoff = Handoff<CircularBuffer, BackoffWhenIdle, false>;
 struct StampedMbo {
     mbo::MboMessage message;
     std::int64_t pushed_ns = 0;
+    std::int64_t arrived_ns = 0;
 };
 
 inline std::int64_t steady_ns()
@@ -114,7 +115,7 @@ public:
         out << "ts_ns,side,level,price,size\n" << std::fixed << std::setprecision(2);
     }
 
-    void on_record(const databento::Record& rec)
+    void on_record(const databento::Record& rec, std::int64_t arrived_ns = 0)
     {
         if (const auto* error = rec.GetIf<databento::ErrorMsg>()) {
             ++producer_.gateway_errors;
@@ -146,11 +147,15 @@ public:
         if (!shards_.empty()) {
             Shard& shard = *shards_[message->instrument_id() % shards_.size()];
             ++shard.records;
-            shard.pipeline.push(queued(*message));
+            shard.pipeline.push(queued(*message, arrived_ns));
             return;
         }
         if (pipeline_) {
-            pipeline_->push(queued(*message));
+            pipeline_->push(queued(*message, arrived_ns));
+        } else if constexpr (HandoffType::kStamped) {
+            const std::int64_t decoded_ns = steady_ns();
+            apply(*message);
+            record_done(decoded_ns, arrived_ns != 0 ? arrived_ns : decoded_ns, applied_, arrivals_);
         } else {
             apply(*message);
         }
@@ -211,6 +216,24 @@ public:
         return all;
     }
 
+    std::vector<std::uint32_t> applied_latencies_ns() const
+    {
+        std::vector<std::uint32_t> all = applied_;
+        for (const auto& shard : shards_) {
+            all.insert(all.end(), shard->applied.begin(), shard->applied.end());
+        }
+        return all;
+    }
+
+    std::vector<std::uint32_t> arrival_latencies_ns() const
+    {
+        std::vector<std::uint32_t> all = arrivals_;
+        for (const auto& shard : shards_) {
+            all.insert(all.end(), shard->arrivals.begin(), shard->arrivals.end());
+        }
+        return all;
+    }
+
 private:
     static constexpr double kPriceScale = 1e9;
 
@@ -223,12 +246,38 @@ private:
         return latencies;
     }
 
-    static Queued queued(const mbo::MboMessage& message)
+    static Queued queued(const mbo::MboMessage& message, std::int64_t arrived_ns)
     {
         if constexpr (HandoffType::kStamped) {
-            return StampedMbo{message, steady_ns()};
+            const std::int64_t pushed_ns = steady_ns();
+            return StampedMbo{message, pushed_ns, arrived_ns != 0 ? arrived_ns : pushed_ns};
         } else {
+            (void)arrived_ns;
             return message;
+        }
+    }
+
+    static std::uint32_t clamped_ns(std::int64_t ns)
+    {
+        return static_cast<std::uint32_t>(std::clamp<std::int64_t>(ns, 0, UINT32_MAX));
+    }
+
+    static void record_done(std::int64_t started_ns, std::int64_t arrived_ns, std::vector<std::uint32_t>& applied,
+                            std::vector<std::uint32_t>& arrivals)
+    {
+        const std::int64_t done_ns = steady_ns();
+        applied.push_back(clamped_ns(done_ns - started_ns));
+        arrivals.push_back(clamped_ns(done_ns - arrived_ns));
+    }
+
+    static void record_applied(const Queued& item, std::vector<std::uint32_t>& applied, std::vector<std::uint32_t>& arrivals)
+    {
+        if constexpr (HandoffType::kStamped) {
+            record_done(item.pushed_ns, item.arrived_ns, applied, arrivals);
+        } else {
+            (void)item;
+            (void)applied;
+            (void)arrivals;
         }
     }
 
@@ -245,13 +294,23 @@ private:
 
     struct ApplyOnConsumer {
         DatabentoSession* session;
-        void operator()(const Queued& item) const { session->apply(unwrap(item, session->latencies_)); }
+        void operator()(const Queued& item) const
+        {
+            session->apply(unwrap(item, session->latencies_));
+            record_applied(item, session->applied_, session->arrivals_);
+        }
     };
 
     struct ApplyToBook {
         BookType* book;
         std::vector<std::uint32_t>* latencies;
-        void operator()(const Queued& item) const { mbo::handle_message(unwrap(item, *latencies), book); }
+        std::vector<std::uint32_t>* applied;
+        std::vector<std::uint32_t>* arrivals;
+        void operator()(const Queued& item) const
+        {
+            mbo::handle_message(unwrap(item, *latencies), book);
+            record_applied(item, *applied, *arrivals);
+        }
     };
 
     struct ProducerCounters {
@@ -262,12 +321,14 @@ private:
 
     struct Shard {
         Shard(std::size_t max_batch, std::size_t cpu_slot)
-            : pipeline(ApplyToBook{&book, &latencies}, max_batch, cpu_slot)
+            : pipeline(ApplyToBook{&book, &latencies, &applied, &arrivals}, max_batch, cpu_slot)
         {
         }
 
         BookType book;
         std::vector<std::uint32_t> latencies = reserved_latencies();
+        std::vector<std::uint32_t> applied = reserved_latencies();
+        std::vector<std::uint32_t> arrivals = reserved_latencies();
         alignas(kCacheLineSize) std::uint64_t records = 0;
         typename HandoffType::template Pipeline<Queued, kQueueCapacity, ApplyToBook> pipeline;
     };
@@ -403,6 +464,8 @@ private:
     std::uint64_t crossed_prints_ = 0;
 
     alignas(kCacheLineSize) std::vector<std::uint32_t> latencies_ = reserved_latencies();
+    std::vector<std::uint32_t> applied_ = reserved_latencies();
+    std::vector<std::uint32_t> arrivals_ = reserved_latencies();
     std::optional<typename HandoffType::template Pipeline<Queued, kQueueCapacity, ApplyOnConsumer>> pipeline_;
     std::vector<std::unique_ptr<Shard>> shards_;
 };

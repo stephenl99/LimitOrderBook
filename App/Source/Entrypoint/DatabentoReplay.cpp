@@ -20,6 +20,7 @@
 
 #include "BookVariants/BookVariants.h"
 #include "BookVariants/OrderFlow.h"
+#include "Core/PerfControl.h"
 #include "Session/DatabentoSession.h"
 
 namespace db = databento;
@@ -30,30 +31,43 @@ class MarketClock {
 public:
     explicit MarketClock(double speed) : speed_(speed) {}
 
-    void wait_for(const db::MboMsg& mbo)
+    std::int64_t wait_for(const db::MboMsg& mbo)
     {
         if (speed_ <= 0.0 || mbo.flags.IsSnapshot()) {
-            return;
+            return 0;
         }
         const std::uint64_t market_ns = mbo.ts_recv.time_since_epoch().count();
         if (!started_) {
             started_ = true;
             first_market_ns_ = market_ns;
             wall_start_ = std::chrono::steady_clock::now();
-            return;
+            awake_since_ = wall_start_;
+            return ns_of(awake_since_);
         }
         if (market_ns <= first_market_ns_) {
-            return;
+            return ns_of(awake_since_);
         }
         const double wall_ns = static_cast<double>(market_ns - first_market_ns_) / speed_;
-        std::this_thread::sleep_until(wall_start_ + std::chrono::nanoseconds(static_cast<std::int64_t>(wall_ns)));
+        const auto due = wall_start_ + std::chrono::nanoseconds(static_cast<std::int64_t>(wall_ns));
+        const auto now = std::chrono::steady_clock::now();
+        if (due > now) {
+            std::this_thread::sleep_for(due - now);
+            awake_since_ = std::chrono::steady_clock::now();
+        }
+        return ns_of(std::max(due, awake_since_));
     }
 
 private:
+    static std::int64_t ns_of(std::chrono::steady_clock::time_point time)
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(time.time_since_epoch()).count();
+    }
+
     double speed_;
     bool started_ = false;
     std::uint64_t first_market_ns_ = 0;
     std::chrono::steady_clock::time_point wall_start_;
+    std::chrono::steady_clock::time_point awake_since_;
 };
 
 std::unordered_map<InstrumentId, std::string> instrument_names(const db::Metadata& metadata)
@@ -311,30 +325,50 @@ double percentile(const std::vector<std::uint32_t>& sorted, double p)
     return sorted.empty() ? 0.0 : sorted[static_cast<std::size_t>(p * static_cast<double>(sorted.size() - 1))];
 }
 
-void write_latency(const ReplayOptions& options, std::vector<std::uint32_t> latencies)
+void write_percentiles(std::ostream& out, const std::vector<std::uint32_t>& sorted)
 {
-    std::sort(latencies.begin(), latencies.end());
-    const bool fresh = !std::filesystem::exists(options.latency_path);
-    std::ofstream out(options.latency_path, std::ios::app);
-    if (fresh) {
-        out << "file,mode,book,handoff,batch,speed,count,p50_ns,p90_ns,p99_ns,p999_ns,p9999_ns,max_ns\n";
-    }
-    out << options.path.filename().string() << ',' << options.mode << ',' << options.book << ',' << options.handoff
-        << ',' << options.batch << ',' << options.speed << ',' << latencies.size() << ',' << percentile(latencies, 0.5)
-        << ',' << percentile(latencies, 0.9) << ',' << percentile(latencies, 0.99) << ','
-        << percentile(latencies, 0.999) << ',' << percentile(latencies, 0.9999) << ','
-        << (latencies.empty() ? 0 : latencies.back()) << '\n';
-    const std::filesystem::path cdf_path = options.latency_path.string() + ".cdf";
-    const bool fresh_cdf = !std::filesystem::exists(cdf_path);
+    out << percentile(sorted, 0.5) << ',' << percentile(sorted, 0.9) << ',' << percentile(sorted, 0.99) << ','
+        << percentile(sorted, 0.999) << ',' << percentile(sorted, 0.9999) << ',' << (sorted.empty() ? 0 : sorted.back());
+}
+
+void write_cdf(const ReplayOptions& options, const std::filesystem::path& cdf_path, const std::vector<std::uint32_t>& sorted)
+{
+    const bool fresh = !std::filesystem::exists(cdf_path);
     std::ofstream cdf(cdf_path, std::ios::app);
-    if (fresh_cdf) {
+    if (fresh) {
         cdf << "file,mode,book,handoff,batch,speed,p,latency_ns\n";
     }
     for (int step = 0; step <= 1000; ++step) {
         const double p = 1.0 - std::pow(10.0, -4.0 * step / 1000.0);
         cdf << options.path.filename().string() << ',' << options.mode << ',' << options.book << ',' << options.handoff
-            << ',' << options.batch << ',' << options.speed << ',' << p << ',' << percentile(latencies, p) << '\n';
+            << ',' << options.batch << ',' << options.speed << ',' << p << ',' << percentile(sorted, p) << '\n';
     }
+}
+
+void write_latency(const ReplayOptions& options, std::vector<std::uint32_t> latencies, std::vector<std::uint32_t> applied,
+                   std::vector<std::uint32_t> arrival)
+{
+    std::sort(latencies.begin(), latencies.end());
+    std::sort(applied.begin(), applied.end());
+    std::sort(arrival.begin(), arrival.end());
+    const bool fresh = !std::filesystem::exists(options.latency_path);
+    std::ofstream out(options.latency_path, std::ios::app);
+    if (fresh) {
+        out << "file,mode,book,handoff,batch,speed,count,p50_ns,p90_ns,p99_ns,p999_ns,p9999_ns,max_ns,"
+               "applied_count,applied_p50_ns,applied_p90_ns,applied_p99_ns,applied_p999_ns,applied_p9999_ns,applied_max_ns,"
+               "arrival_count,arrival_p50_ns,arrival_p90_ns,arrival_p99_ns,arrival_p999_ns,arrival_p9999_ns,arrival_max_ns\n";
+    }
+    out << options.path.filename().string() << ',' << options.mode << ',' << options.book << ',' << options.handoff
+        << ',' << options.batch << ',' << options.speed << ',' << latencies.size() << ',';
+    write_percentiles(out, latencies);
+    out << ',' << applied.size() << ',';
+    write_percentiles(out, applied);
+    out << ',' << arrival.size() << ',';
+    write_percentiles(out, arrival);
+    out << '\n';
+    write_cdf(options, options.latency_path.string() + ".cdf", latencies);
+    write_cdf(options, options.latency_path.string() + ".applied.cdf", applied);
+    write_cdf(options, options.latency_path.string() + ".arrival.cdf", arrival);
 }
 
 template <typename BookType, typename HandoffType = DefaultHandoff>
@@ -358,21 +392,24 @@ int replay(const ReplayOptions& options)
     db::DbnStore store{options.path};
     MarketClock clock(options.speed);
 
+    perf_counters().enable();
     const auto start = std::chrono::steady_clock::now();
     store.Replay([&](db::Metadata&& metadata) { session.name_instruments(instrument_names(metadata)); },
                  [&](const db::Record& rec) {
+                     std::int64_t arrived_ns = 0;
                      if (const auto* mbo = rec.GetIf<db::MboMsg>()) {
-                         clock.wait_for(*mbo);
+                         arrived_ns = clock.wait_for(*mbo);
                      }
-                     session.on_record(rec);
+                     session.on_record(rec, arrived_ns);
                      return db::KeepGoing::Continue;
                  });
     session.finish();
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    perf_counters().disable();
 
     session.print_summary();
     if constexpr (HandoffType::kStamped) {
-        write_latency(options, session.handoff_latencies_ns());
+        write_latency(options, session.handoff_latencies_ns(), session.applied_latencies_ns(), session.arrival_latencies_ns());
     }
     std::cout << "replayed " << session.records() << " records in " << seconds << "s";
     if (options.speed > 0.0) {
@@ -434,6 +471,7 @@ constexpr BookEntry kBooks[] = {
     {"ladder-cached64", run_book<DirectCachedLadderBook>},
     {"ladder-identity", run_book<IdentityLadderBook>},
     {"tree-cached64", run_book<OuterBook<SecurityBook, 64>>},
+    {"agg-map-cached64", run_book<OuterBook<MapAggregateSecurityBook, 64>>},
     {"hybrid-cached64", run_book<OuterBook<HybridFlatSecurityBook, 64>>},
     {"agg-flat-cached64", run_book<OuterBook<SortedAggregateFlatIndexSecurityBook, 64>>},
     {"pooled-hybrid", run_book<OuterBook<PooledHybridSecurityBook, 64>>},

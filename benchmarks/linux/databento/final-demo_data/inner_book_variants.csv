@@ -1,0 +1,17 @@
+file,book,levels,index,orders,cache,median_ns,min_ns,resting_orders,depth_hash
+cme_mix,tree,map,node,list,64,144.767,135.224,54184,f023625333d3ba89
+cme_mix,flat,vector-linear,node,list,64,134.418,132.768,54184,f023625333d3ba89
+cme_mix,hybrid,vector-hybrid,node,list,64,127.741,122.437,54184,f023625333d3ba89
+cme_mix,agg,vector-hybrid,node,aggregate,64,103.342,99.2794,54184,f023625333d3ba89
+cme_mix,agg-flat,vector-hybrid,flat,aggregate,64,63.045,61.1852,54184,f023625333d3ba89
+cme_mix,agg-linear,vector-linear,flat,aggregate,64,74.24,72.1787,54184,f023625333d3ba89
+cme_mix,agg-map,map,flat,aggregate,64,83.8386,80.4146,54184,f023625333d3ba89
+cme_mix,ladder,ladder,flat,aggregate,64,53.8646,51.7792,54184,f023625333d3ba89
+cme_mix,ladder-identity,ladder,flat-identity,aggregate,64,53.3154,53.0483,54184,f023625333d3ba89
+cme_mix,pooled-hybrid,vector-hybrid,flat,pooled-fifo,64,60.2972,59.2765,54184,f023625333d3ba89
+cme_mix,pooled-ladder,ladder,flat,pooled-fifo,64,51.9857,51.1483,54184,f023625333d3ba89
+cme_mix,lazy-hash-ladder,ladder,flat,lazy-fifo,64,83.6713,77.514,54184,f023625333d3ba89
+cme_mix,lazy-slot-ladder,ladder,flat,lazy-fifo,64,110.736,104.935,54184,f023625333d3ba89
+cme_mix,lazy-handle-ladder,ladder,flat,lazy-fifo,64,76.0347,73.0559,54184,f023625333d3ba89
+cme_mix,tree-nocache,map,node,list,0,153.269,138.698,54184,f023625333d3ba89
+cme_mix,ladder-nocache,ladder,flat,aggregate,0,66.299,65.031,54184,f023625333d3ba89

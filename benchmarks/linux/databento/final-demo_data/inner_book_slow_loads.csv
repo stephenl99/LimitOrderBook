@@ -1,0 +1,262 @@
+scenario,impl,source,owner,category,level,loads,latency_cycles
+cme_mix,agg-map,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,113,13739
+cme_mix,agg-map,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,12,4312
+cme_mix,agg-map,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,86,4258
+cme_mix,agg-map,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,15,2764
+cme_mix,agg-map,stl_tree.h:2604,,price levels,fill buffer,32,1807
+cme_mix,agg-map,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,20,1756
+cme_mix,agg-map,stl_tree.h:1437,,price levels,fill buffer,28,1303
+cme_mix,agg-map,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,4,1196
+cme_mix,agg-map,stl_tree.h:1425,,price levels,L3,24,1044
+cme_mix,agg-map,stl_vector.h:1264,,std::vector access,fill buffer,8,959
+cme_mix,agg-map,MapLevels.h:24,MapLevels,price levels,L1,1,869
+cme_mix,agg-map,AggregateSecurityBook.cpp:13,,book logic,L1,2,757
+cme_mix,agg-map,AggregateSecurityBook.cpp:102,,book logic,fill buffer,9,717
+cme_mix,agg-map,OrderIndex.h:113,BasicFlatOrderIndex,order index,DRAM,3,707
+cme_mix,agg-map,AggregateSecurityBook.cpp:19,,book logic,fill buffer,7,635
+cme_mix,agg-map,AggregateSecurityBook.cpp:103,,book logic,fill buffer,12,578
+cme_mix,agg-map,AggregateSecurityBook.cpp:45,,book logic,fill buffer,9,444
+cme_mix,agg-map,stl_tree.h:1437,,price levels,L3,9,372
+cme_mix,agg-map,stl_tree.h:1425,,price levels,fill buffer,7,334
+cme_mix,agg-map,stl_tree.h:2604,,price levels,L3,7,317
+cme_mix,agg-map,BookBench.cpp:136,Options,benchmark harness,fill buffer,1,301
+cme_mix,agg-map,BookBench.cpp:144,Options,benchmark harness,DRAM,1,290
+cme_mix,agg-map,BookBench.cpp:138,Options,benchmark harness,fill buffer,1,283
+cme_mix,agg-map,AggregateSecurityBook.cpp:45,,book logic,DRAM,1,278
+cme_mix,agg-map,OrderIndex.h:162,BasicFlatOrderIndex,order index,DRAM,1,275
+cme_mix,agg-map,OrderIndex.h:162,BasicFlatOrderIndex,order index,fill buffer,1,246
+cme_mix,agg-map,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,5,200
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               72 ffffffff9ebc23e9,,other,L1,1,188
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   54     60dc6e6d83b9,,other,L1,2,149
+cme_mix,agg-map,tree.cc:240,,other,L3,2,111
+cme_mix,agg-map,AggregateSecurityBook.cpp:45,,book logic,L3,2,105
+cme_mix,agg-map,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A              37 ffffffff9fb341b7,,other,L1,1,102
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   41 ffffffff9eb562e1,,other,L1,1,101
+cme_mix,agg-map,optional:213,,other,L3,2,94
+cme_mix,agg-map,malloc.c:3876,,other,L1,1,93
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   77     60dc6e6d3fcb,,other,L3,1,91
+cme_mix,agg-map,malloc.c:3034,,other,L3,2,86
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   35     60dc6e6d79eb,,other,L1,1,84
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   74     60dc6e6d83e1,,other,L3,1,82
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   59 ffffffff9eb988c8,,other,fill buffer,1,78
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               39     60dc6e6bff97,,other,L1,1,72
+cme_mix,agg-map,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              41     60dc6e6d7bef,,other,fill buffer,1,70
+cme_mix,agg-map,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A              243     60dc6e6bff97,,other,L1,1,68
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   54 ffffffff9ebc601a,,other,L1,1,68
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   39     77754d6dd77b,,other,L3,1,68
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   52 ffffffff9eb99522,,other,L1,1,63
+cme_mix,agg-map,[kernel],,kernel,L3,1,61
+cme_mix,agg-map,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             152     60dc6e6bff97,,other,L1,1,59
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   52     60dc6e6d83b9,,other,L1,1,56
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   40 ffffffff9ecb76bd,,other,L1,1,56
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   75     60dc6e6d83e1,,other,L1,1,55
+cme_mix,agg-map,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             246     60dc6e6bff60,,other,L1,1,54
+cme_mix,agg-map,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   42     60dc6e6d83e1,,other,L3,1,52
+cme_mix,agg-map,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              52     60dc6e6d7bef,,other,fill buffer,1,52
+cme_mix,agg-map,sstream:87,,other,L3,1,48
+cme_mix,agg-map,OuterBook.h:32,OuterBook,instrument lookup,fill buffer,1,47
+cme_mix,agg-map,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             274     60dc6e6d3b5c,,other,L3,1,47
+cme_mix,agg-map,AggregateSecurityBook.cpp:102,,book logic,L3,1,46
+cme_mix,agg-map,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                  46 ffffffff9eb9962f,,other,L3,1,41
+cme_mix,agg-map,malloc.c:3003,,other,L3,1,40
+cme_mix,agg-map,OrderIndex.h:97,BasicFlatOrderIndex,order index,fill buffer,1,40
+cme_mix,agg-map,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   37     60dc6e6bff60,,other,L1,1,40
+cme_mix,agg-map,OrderIndex.h:163,BasicFlatOrderIndex,order index,fill buffer,1,39
+cme_mix,agg-map,tree.cc:141,,other,L3,1,39
+cme_mix,agg-map,stl_tree.h:1378,,price levels,L3,1,39
+cme_mix,agg-map,malloc.c:4458,,other,fill buffer,1,38
+cme_mix,agg-map,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A              275     60dc6e6bff60,,other,L1,1,37
+cme_mix,agg-map,OrderIndex.h:162,BasicFlatOrderIndex,order index,L3,1,37
+cme_mix,agg-map,malloc.c:3287,,other,L3,1,36
+cme_mix,agg-map,stl_vector.h:1264,,std::vector access,L1,1,33
+cme_mix,agg-flat,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,133,13192
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,100,4986
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,13,4098
+cme_mix,agg-flat,BookBench.cpp:138,Options,benchmark harness,fill buffer,4,1970
+cme_mix,agg-flat,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,12,1776
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L1,38,1453
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,L1,33,1286
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L1,29,1103
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L1,30,1031
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L1,26,1001
+cme_mix,agg-flat,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,17,978
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,L1,27,967
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,L1,23,830
+cme_mix,agg-flat,AggregateSecurityBook.cpp:103,,book logic,fill buffer,15,744
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L1,20,728
+cme_mix,agg-flat,BookBench.cpp:136,Options,benchmark harness,fill buffer,2,703
+cme_mix,agg-flat,AggregateSecurityBook.cpp:102,,book logic,fill buffer,8,684
+cme_mix,agg-flat,stl_algo.h:533,,price levels,L3,13,611
+cme_mix,agg-flat,BookBench.cpp:138,Options,benchmark harness,DRAM,1,513
+cme_mix,agg-flat,BookBench.cpp:213,ThroughputResult,benchmark harness,L1,1,408
+cme_mix,agg-flat,stl_vector.h:1264,,std::vector access,fill buffer,9,403
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,fill buffer,7,401
+cme_mix,agg-flat,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,10,395
+cme_mix,agg-flat,BookBench.cpp:213,ThroughputResult,benchmark harness,DRAM,1,389
+cme_mix,agg-flat,AggregateSecurityBook.cpp:54,,book logic,L1,2,363
+cme_mix,agg-flat,BookBench.cpp:144,Options,benchmark harness,DRAM,1,358
+cme_mix,agg-flat,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              47     5c2c6ad2e6ec,,other,L1,1,345
+cme_mix,agg-flat,AggregateSecurityBook.cpp:45,,book logic,DRAM,1,340
+cme_mix,agg-flat,SortedLevels.h:31,SortedLevels,price levels,L1,2,330
+cme_mix,agg-flat,LevelSearch.h:35,LevelPosition,price levels,L1,8,322
+cme_mix,agg-flat,AggregateSecurityBook.cpp:19,,book logic,fill buffer,7,311
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,fill buffer,4,303
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L2,7,296
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   33     75b320197c20,,other,fill buffer,1,295
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               32     75b320197c2a,,other,DRAM,1,235
+cme_mix,agg-flat,BookBench.cpp:144,Options,benchmark harness,fill buffer,1,212
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L3,3,207
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,fill buffer,3,180
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,fill buffer,4,174
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L2,4,159
+cme_mix,agg-flat,AggregateSecurityBook.cpp:45,,book logic,fill buffer,2,149
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   48 ffffffff9eb98021,,other,L1,1,137
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L3,2,134
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,fill buffer,3,131
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,fill buffer,2,126
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,fill buffer,2,125
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,fill buffer,2,118
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   79     5c2c6ad304dd,,other,L1,1,109
+cme_mix,agg-flat,OrderIndex.h:162,BasicFlatOrderIndex,order index,fill buffer,2,109
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   55 ffffffff9eb980d5,,other,L1,1,105
+cme_mix,agg-flat,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,L3,2,104
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L2,2,103
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               62 ffffffff9eb98011,,other,L1,1,100
+cme_mix,agg-flat,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A              39 ffffffff9e817611,,other,L1,1,93
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,L2,2,92
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,L3,1,92
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:483,,other,L2,2,91
+cme_mix,agg-flat,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               49     5c2c6ad304b5,,other,L1,1,87
+cme_mix,agg-flat,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A              235 ffffffff9ebf477c,,other,L1,1,87
+cme_mix,agg-flat,AggregateSecurityBook.cpp:13,,book logic,L1,1,86
+cme_mix,agg-flat,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              53     5c2c6ad18f60,,other,L1,1,81
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:537,,other,L3,1,70
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   41 ffffffff9ecb76bd,,other,L1,1,67
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               80     5c2c6ad304dd,,other,L1,1,64
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               34     75b320197c25,,other,L1,1,62
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:485,,other,L3,1,62
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   32     75b320197ba0,,other,L3,1,59
+cme_mix,agg-flat,AggregateSecurityBook.cpp:45,,book logic,L3,1,58
+cme_mix,agg-flat,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   40     5c2c6ad18f97,,other,L1,1,57
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   36     5c2c6ad304dd,,other,L1,1,55
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:538,,other,L3,1,55
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   32     75b320197c2a,,other,L1,1,55
+cme_mix,agg-flat,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A              87 ffffffff9eb980f2,,other,L1,1,53
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   81 ffffffff9eb9817e,,other,L1,1,53
+cme_mix,agg-flat,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              49     5c2c6ad304b5,,other,L1,1,52
+cme_mix,agg-flat,stl_algo.h:533,,price levels,fill buffer,1,51
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   34     75b320197c25,,other,L1,1,50
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:484,,other,L2,1,50
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:486,,other,L3,1,48
+cme_mix,agg-flat,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              56     5c2c6ad18f60,,other,L1,1,48
+cme_mix,agg-flat,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                  50 ffffffff9eb9940d,,other,L1,1,47
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:660,,other,L3,1,46
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:660,,other,L1,1,41
+cme_mix,agg-flat,P:      10250100142 |OP LOAD|LVL L1 hit|SNP None|TLB L2 miss|LCK No|BLK  N/A                       345 ffffffff9fb1da3e,,other,L1,1,41
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               87 ffffffff9eb98862,,other,L1,1,39
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:536,,other,L2,1,38
+cme_mix,agg-flat,memmove-vec-unaligned-erms.S:535,,other,L3,1,38
+cme_mix,agg-flat,SortedLevels.h:40,SortedLevels,price levels,fill buffer,1,37
+cme_mix,agg-flat,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,1,37
+cme_mix,agg-flat,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A               64 ffffffff9eb97c07,,other,L1,1,32
+cme_mix,ladder,OrderIndex.h:84,BasicFlatOrderIndex,order index,L1,128,10942
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,L3,89,4250
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,DRAM,13,3907
+cme_mix,ladder,stl_construct.h:110,,other,fill buffer,31,3825
+cme_mix,ladder,memmove-vec-unaligned-erms.S:756,,other,L1,6,2117
+cme_mix,ladder,OrderIndex.h:82,BasicFlatOrderIndex,order index,fill buffer,13,1363
+cme_mix,ladder,stl_construct.h:110,,other,DRAM,4,1106
+cme_mix,ladder,memmove-vec-unaligned-erms.S:758,,other,L1,3,953
+cme_mix,ladder,BookBench.cpp:138,Options,benchmark harness,fill buffer,3,940
+cme_mix,ladder,memmove-vec-unaligned-erms.S:760,,other,fill buffer,3,893
+cme_mix,ladder,stl_construct.h:110,,other,L1,4,762
+cme_mix,ladder,memmove-vec-unaligned-erms.S:755,,other,L1,3,743
+cme_mix,ladder,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,fill buffer,10,731
+cme_mix,ladder,BookBench.cpp:213,ThroughputResult,benchmark harness,DRAM,2,723
+cme_mix,ladder,AggregateSecurityBook.cpp:102,,book logic,fill buffer,9,642
+cme_mix,ladder,BookBench.cpp:136,Options,benchmark harness,fill buffer,2,610
+cme_mix,ladder,memmove-vec-unaligned-erms.S:761,,other,fill buffer,2,576
+cme_mix,ladder,BookBench.cpp:153,Options,benchmark harness,fill buffer,1,541
+cme_mix,ladder,memmove-vec-unaligned-erms.S:760,,other,L1,6,535
+cme_mix,ladder,memmove-vec-unaligned-erms.S:757,,other,L1,3,439
+cme_mix,ladder,AggregateSecurityBook.cpp:19,,book logic,fill buffer,7,354
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  334     7ade34397da3,,other,DRAM,1,346
+cme_mix,ladder,BookBench.cpp:136,Options,benchmark harness,L1,1,344
+cme_mix,ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,fill buffer,2,318
+cme_mix,ladder,OrderIndex.h:113,BasicFlatOrderIndex,order index,L3,7,285
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             351     7ade34397df0,,other,DRAM,1,284
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             298     5fac5fb64920,,other,DRAM,1,283
+cme_mix,ladder,stl_vector.h:1263,,std::vector access,fill buffer,6,280
+cme_mix,ladder,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A                  284 ffffffff9ec34bdd,,other,DRAM,1,279
+cme_mix,ladder,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A                  240     5fac5fb7841c,,other,L1,1,279
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   63     5fac5fb78444,,other,fill buffer,1,275
+cme_mix,ladder,memmove-vec-unaligned-erms.S:761,,other,L3,1,263
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              37     5fac5fb5df60,,other,fill buffer,1,215
+cme_mix,ladder,AggregateSecurityBook.cpp:103,,book logic,fill buffer,4,201
+cme_mix,ladder,memmove-vec-unaligned-erms.S:760,,other,L2,1,200
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              74     5fac5fb64920,,other,fill buffer,1,195
+cme_mix,ladder,PriceLadder.h:41,PriceLadder,price levels,L3,4,184
+cme_mix,ladder,PriceLadder.h:25,PriceLadder,price levels,L3,4,182
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  521     7ade34397daa,,other,L1,2,168
+cme_mix,ladder,memmove-vec-unaligned-erms.S:660,,other,fill buffer,2,157
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   37 ffffffff9ebeb1cd,,other,L1,1,129
+cme_mix,ladder,stl_construct.h:110,,other,L3,2,123
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  207     7ade34397dbf,,other,L1,1,115
+cme_mix,ladder,OrderIndex.h:162,BasicFlatOrderIndex,order index,L3,2,114
+cme_mix,ladder,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A                  346 ffffffff9ec33a4d,,other,L1,1,106
+cme_mix,ladder,OrderIndex.h:83,BasicFlatOrderIndex,order index,L3,1,106
+cme_mix,ladder,stl_vector.h:1263,,std::vector access,L3,2,106
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             122     5fac5fb64920,,other,L1,1,102
+cme_mix,ladder,AggregateSecurityBook.cpp:45,,book logic,L3,2,101
+cme_mix,ladder,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                  55 ffffffff9eb9918d,,other,L1,1,99
+cme_mix,ladder,memmove-vec-unaligned-erms.S:761,,other,L1,2,98
+cme_mix,ladder,stl_vector.h:1283,,std::vector access,L3,2,93
+cme_mix,ladder,AggregateSecurityBook.cpp:45,,book logic,fill buffer,2,93
+cme_mix,ladder,PriceLadder.h:102,PriceLadder,price levels,L1,1,91
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   99 ffffffff9eb98100,,other,fill buffer,1,82
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   58 ffffffff9eb98011,,other,fill buffer,1,80
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  103     7ade34397dd6,,other,L1,1,75
+cme_mix,ladder,memmove-vec-unaligned-erms.S:660,,other,L2,1,74
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             199     7ade34397ddb,,other,L1,1,72
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   73     5fac5fb78444,,other,L1,1,68
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   49 ffffffff9eb9807e,,other,L1,1,68
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              33     5fac5fb64920,,other,L1,1,68
+cme_mix,ladder,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   40 ffffffff9eb995a2,,other,L1,1,66
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              47     5fac5fb64b20,,other,L1,1,65
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             201     5fac5fb64920,,other,L1,1,65
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             286     5fac5fb64920,,other,L1,1,64
+cme_mix,ladder,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                  51 ffffffff9eb994fc,,other,L1,1,63
+cme_mix,ladder,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                 129 ffffffff9eb9918d,,other,L1,1,61
+cme_mix,ladder,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   44     5fac5fb70860,,other,L3,1,61
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   54     7ade34397df0,,other,L1,1,60
+cme_mix,ladder,P:      1026a100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK Yes|BLK  N/A                  56 ffffffff9eb994fc,,other,L1,1,58
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              74     5fac5fb64b20,,other,L1,1,57
+cme_mix,ladder,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   61     5fac5fb5df60,,other,L1,1,57
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   51 ffffffff9ebc601a,,other,L1,1,56
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             195 ffffffff9ecb76bd,,other,L1,1,55
+cme_mix,ladder,P:      10468100442 |OP LOAD|LVL L2 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   74     7ade34397d07,,other,L1,1,55
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  106 ffffffff9eb98100,,other,L1,1,54
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   72 ffffffff9ebc23df,,other,L1,1,53
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  257     7ade34397db8,,other,L1,1,53
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   60     7ade34397dcd,,other,L1,1,52
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   61 ffffffff9eb98014,,other,L1,1,51
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A              43     5fac5fb64920,,other,L1,1,51
+cme_mix,ladder,P:      11868100242 |OP LOAD|LVL LFB/MAB hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A             122     7ade34397ddb,,other,L1,1,51
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   45     5fac5fb70c13,,other,fill buffer,1,50
+cme_mix,ladder,AggregateSecurityBook.h:86,AggregateSecurityBook,book logic,L3,1,50
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   41 ffffffff9ec7ebbd,,other,L1,1,49
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   43     5fac5fb77785,,other,L3,1,49
+cme_mix,ladder,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A                  249     5fac5fb64920,,other,L1,1,48
+cme_mix,ladder,AggregateSecurityBook.cpp:12,,book logic,fill buffer,1,47
+cme_mix,ladder,P:      10668100842 |OP LOAD|LVL L3 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   41     5fac5fb7083a,,other,fill buffer,1,46
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   66 ffffffff9ebc23e9,,other,L1,1,45
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   81     5fac5fb70c13,,other,fill buffer,1,43
+cme_mix,ladder,P:      11a68201042 |OP LOAD|LVL RAM hit|SNP Hit|TLB L1 or L2 hit|LCK No|BLK  N/A                  135     5fac5fb64920,,other,L1,1,41
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  120     7ade34397d95,,other,L3,1,40
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  188     7ade34397d9c,,other,L1,1,39
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   68 ffffffff9eb98021,,other,L1,1,39
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   55 ffffffff9ebc601a,,other,fill buffer,1,38
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                  115 ffffffff9eb980fd,,other,L1,1,38
+cme_mix,ladder,P:      10268100142 |OP LOAD|LVL L1 hit|SNP None|TLB L1 or L2 hit|LCK No|BLK  N/A                   65 ffffffff9eb988c8,,other,L1,1,37
+cme_mix,ladder,OrderIndex.h:162,BasicFlatOrderIndex,order index,fill buffer,1,37
+cme_mix,ladder,OuterBook.h:32,OuterBook,instrument lookup,L1,1,35

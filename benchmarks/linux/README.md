@@ -17,6 +17,13 @@ Contents: [Final demo](#final-demo) · [Databento path](#databento-path) · [Syn
 
 ## Final demo
 
+**Presentation set:** seven charts in [`databento/final-demo_images/report/`](databento/final-demo_images/report/)
+(handoffs, idle strategies with and without other order books on the cores, inner books, perf counters for both,
+every handoff x book, and the whole flow per message), described chart by chart, with conclusions, method and every
+CSV column, in [`databento/final-demo_data/REPORT.md`](databento/final-demo_data/REPORT.md). Collected with
+`tools/linux/databento_report_data.sh`, drawn by `tools/plot_report.py`, tables by `tools/report_tables.py`. The
+rest of this section is the earlier run that the report builds on.
+
 Charts in [`databento/final-demo_images/`](databento/final-demo_images/), data in
 [`databento/final-demo_data/`](databento/final-demo_data/). `cme_mix` (six CME futures, one hour), `ladder-cached64`
 book, batch 64, producer and each consumer on its own physical core. Throughput flat out on the decompressed file
