@@ -1,0 +1,16 @@
+variant,handoff,run,records,seconds,msgs_per_sec
+seqcst-unpadded,ring-seqcst-unpadded,0,1054337,0.123997,8502893
+acqrel-unpadded,ring-unpadded,0,1054337,0.124539,8465889
+acqrel-padded,ring,0,1054337,0.113512,9288357
+seqcst-unpadded,ring-seqcst-unpadded,1,1054337,0.129072,8168601
+acqrel-unpadded,ring-unpadded,1,1054337,0.103176,10218857
+acqrel-padded,ring,1,1054337,0.0870431,12112814
+seqcst-unpadded,ring-seqcst-unpadded,2,1054337,0.106795,9872575
+acqrel-unpadded,ring-unpadded,2,1054337,0.10124,10414228
+acqrel-padded,ring,2,1054337,0.0900457,11708908
+seqcst-unpadded,ring-seqcst-unpadded,3,1054337,0.108848,9686322
+acqrel-unpadded,ring-unpadded,3,1054337,0.12831,8217090
+acqrel-padded,ring,3,1054337,0.085296,12360925
+seqcst-unpadded,ring-seqcst-unpadded,4,1054337,0.111357,9468071
+acqrel-unpadded,ring-unpadded,4,1054337,0.106626,9888192
+acqrel-padded,ring,4,1054337,0.0878339,12003755

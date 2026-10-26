@@ -427,6 +427,12 @@ int replay_with_handoff(const ReplayOptions& options)
     if (options.handoff == "ring") {
         return replay<BookType, Handoff<CircularBuffer, BackoffWhenIdle, Stamped>>(options);
     }
+    if (options.handoff == "ring-unpadded") {
+        return replay<BookType, Handoff<UnpaddedCircularBuffer, BackoffWhenIdle, Stamped>>(options);
+    }
+    if (options.handoff == "ring-seqcst-unpadded") {
+        return replay<BookType, Handoff<SeqCstUnpaddedCircularBuffer, BackoffWhenIdle, Stamped>>(options);
+    }
     if (options.handoff == "ring-spin") {
         return replay<BookType, Handoff<CircularBuffer, SpinWhenIdle, Stamped>>(options);
     }
@@ -446,7 +452,7 @@ int replay_with_handoff(const ReplayOptions& options)
         return replay<BookType, CondvarHandoff<Stamped>>(options);
     }
     std::cerr << "databento_replay: unknown handoff " << options.handoff
-              << " (ring|ring-spin|ring-yield|ring-tuned|sequenced|locked-ring|mutex-cv)\n";
+              << " (ring|ring-unpadded|ring-seqcst-unpadded|ring-spin|ring-yield|ring-tuned|sequenced|locked-ring|mutex-cv)\n";
     return 1;
 }
 
@@ -499,7 +505,7 @@ int main(int argc, char* argv[])
                   << book_names() << "] [batch] [handoff] [latency.csv]\n"
                   << "  export writes the book operations as a book_bench flow to the depth.csv argument\n"
                   << "  mutex is the ring mode with a std::queue + mutex + condition variable (the mutex-cv handoff)\n"
-                  << "  handoff is ring (default), ring-spin, ring-yield, ring-tuned, sequenced, locked-ring or mutex-cv\n"
+                  << "  handoff is ring (default), ring-unpadded, ring-seqcst-unpadded, ring-spin, ring-yield, ring-tuned, sequenced, locked-ring or mutex-cv\n"
                   << "  ring-tuned backs off by time: LOB_BACKOFF=spin_ns,yield_ns,sleep_ns,timer_slack_ns\n"
                   << "  latency.csv stamps each message on push and appends push-to-apply percentiles\n"
                   << "  variants times every book_bench variant on the file, book only; the book argument is all"

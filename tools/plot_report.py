@@ -564,6 +564,32 @@ def plot_flow():
     per_thread_chart(value_of, HANDOFF, panels, "07_whole_flow_counters.png", {"stages": draw_stages})
 
 
+def plot_ring_layout():
+    path_tp, path_lat = DATA / "ring_layout_throughput.csv", DATA / "ring_layout_latency.csv"
+    if not path_tp.exists() or not path_lat.exists() or not path_lat.stat().st_size:
+        return
+    variants = [("seqcst-unpadded", "seq_cst,\nno alignas", RED), ("acqrel-unpadded", "acquire/release,\nno alignas", GOLD),
+                ("acqrel-padded", "acquire/release,\nalignas (current)", BLUE)]
+    throughput = read(path_tp)
+    latency = read(path_lat)
+    fig, (a, b) = plt.subplots(1, 2, figsize=(13, 4.8), gridspec_kw={"width_ratios": [1, 1.3]})
+    throughput_panel(a, [(label, [float(r["msgs_per_sec"]) / 1e6 for r in throughput if r["variant"] == tag], color)
+                         for tag, label, color in variants])
+    width = 0.36
+    top = 0.0
+    for i, (tag, _, color) in enumerate(variants):
+        for k, (key, alpha) in enumerate((("p50_ns", 1.0), ("p90_ns", 0.45))):
+            v = median(float(r[key]) for r in latency if r["variant"] == tag)
+            x = i + (k - 0.5) * width
+            b.bar(x, v - 100, bottom=100, width=width * 0.92, color=color, alpha=alpha)
+            b.text(x, v * 1.1, fmt_ns(v), ha="center", va="bottom", fontsize=10, color=INK)
+            top = max(top, v)
+    log_ns_axis(b, 100, top * 5)
+    style(b, [label for _, label, _ in variants], "handoff latency, push to pickup: median (solid), p90 (light), log")
+    fig.tight_layout(w_pad=3)
+    save(fig, "08_ring_layout.png")
+
+
 plot_handoff()
 plot_idle()
 plot_inner_book()
@@ -571,3 +597,4 @@ plot_inner_book_counters()
 plot_handoff_counters()
 plot_combos()
 plot_flow()
+plot_ring_layout()

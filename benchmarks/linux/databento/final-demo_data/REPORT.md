@@ -1,10 +1,10 @@
 # Final demo report: the Databento path
 
-Everything behind the seven charts in [`../final-demo_images/report/`](../final-demo_images/report/): what each one
+Everything behind the eight charts in [`../final-demo_images/report/`](../final-demo_images/report/): what each one
 shows, how it was measured, the numbers, what to say on the slide, and the caveats. Written so it can be read on its
 own, without the session that produced it.
 
-- **Charts**: `01_handoff.png` … `07_whole_flow_counters.png`, 150 dpi PNGs on a near-white background with no
+- **Charts**: `01_handoff.png` … `08_ring_layout.png`, 150 dpi PNGs on a near-white background with no
   figure title, so each drops onto a slide under the slide's own title. Colors are fixed across charts: direct call
   green, mutex queue red, ring buffer orange (spin) / gold (yield) / blue (back-off) / violet (tuned back-off); books
   gray (`std::map`), orange (`std::vector`), blue (ladder). Where a chart has two threads, the producer is the light
@@ -343,6 +343,45 @@ into its per-record callback, so for spin and yield the producer's waiting for a
 (the ring is full when the consumer is the slower stage); back-off sleeps instead, which shows as OS. Kernel symbols
 were hidden (`kptr_restrict`), so kernel time is one slice: reading the file, page faults, futex and sleep calls,
 and the idle loop when a thread is parked.
+
+### 08 · Ring buffer: memory ordering and cache-line padding (`08_ring_layout.png`)
+
+**Suggested slide title:** *Padding the indices is worth 20%; acquire/release a few % more.*
+
+**Shows.** The same SPSC ring three ways, everything else default (back-off, ladder book, batch 64, CPUs 1 and 2).
+Left: throughput flat out (median of 5, whisker min–max). Right: handoff latency push → pickup, paced at 60x, median
+(solid) and p90 (light), log (median of 2 runs).
+
+- **seq_cst, no alignas** (`ring-seqcst-unpadded`): every atomic load and store `memory_order_seq_cst`, and the
+  head and tail indices (plus each side's cached copy of the other) packed on one cache line.
+- **acquire/release, no alignas** (`ring-unpadded`): today's orderings, indices packed.
+- **acquire/release, alignas** (`ring`, the current code): head and tail each on their own 128-byte line.
+
+Built from one template, `BasicCircularBuffer<T, Capacity, Ordering, PadIndices>` in
+`Core/Source/Handoff/Ring/CircularBuffer.h`; collected with `tools/linux/databento_ring_layout.sh` into
+`ring_layout_throughput.csv`, `ring_layout_counters.csv` (per-thread counters during the throughput runs) and
+`ring_layout_latency.csv`.
+
+| | seq_cst, no alignas | acq/rel, no alignas | acq/rel, alignas |
+|---|---|---|---|
+| M msgs/s | 9.5 | 9.9 | **12.0** |
+| cycles / msg, producer / consumer | 314 / 346 | 311 / 330 | **228 / 259** |
+| lines pulled from the other core / msg, consumer | 0.52 | 0.52 | **0.00** |
+| locked instructions / msg, producer | **1.04** | 0.06 | 0.05 |
+| median (p90) push → pickup | 1.05 µs (62 µs) | 1.03 µs (59 µs) | **805 ns** (58 µs) |
+
+**What to say.**
+- Without padding, the producer's tail and the consumer's head share a cache line, so every write by one side
+  steals the line from the other (false sharing): the consumer pulls it from the producer's core every other
+  message, both threads spend ~80 more cycles per message, and throughput drops 18%.
+- seq_cst costs little more on x86: loads are the same instruction; only the stores change, to a locked `xchg`
+  (one per message on the producer, visible in the counters), another ~4%.
+- The latency median follows: 805 ns with padding vs ~1.04 µs without. The p90 is set by the paced feed's
+  bursts and barely moves.
+
+**Careful.** Collected a day after the rest, on AC; the current ring measured 12.0 M msgs/s here vs 14.4 in 01, and
+each variant had one slow run, so compare within this chart. Batching (64) and the cached indices already hide much
+of the false sharing; a ring without them would suffer more.
 
 ---
 
